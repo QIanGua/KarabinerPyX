@@ -1,0 +1,568 @@
+{
+  "global": {
+    "check_for_updates_on_startup": true,
+    "show_in_menu_bar": true,
+    "show_profile_name_in_menu_bar": false
+  },
+  "profiles": [
+    {
+      "name": "KarabinerPyX Demo",
+      "selected": true,
+      "complex_modifications": {
+        "rules": [
+          {
+            "description": "hyper activation",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "right_command",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "set_variable": {
+                      "name": "hyper",
+                      "value": 1
+                    }
+                  }
+                ],
+                "to_after_key_up": [
+                  {
+                    "set_variable": {
+                      "name": "hyper",
+                      "value": 0
+                    }
+                  }
+                ],
+                "to_if_alone": [
+                  {
+                    "key_code": "escape"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper: h \u2192 left_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "h"
+                },
+                "to": [
+                  {
+                    "key_code": "left_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper: j \u2192 down_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "j"
+                },
+                "to": [
+                  {
+                    "key_code": "down_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper: k \u2192 up_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "k"
+                },
+                "to": [
+                  {
+                    "key_code": "up_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper: l \u2192 right_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "l"
+                },
+                "to": [
+                  {
+                    "key_code": "right_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper macro: t \u2192 typed_text",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "t",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "shell_command": "osascript -e 'tell application \"System Events\" to keystroke \"Hello from KarabinerPyX!\"'"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper combo j+k \u2192 escape",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "simultaneous": [
+                    {
+                      "key_code": "j"
+                    },
+                    {
+                      "key_code": "k"
+                    }
+                  ],
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "key_code": "escape"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper sequence: g+g",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "g",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "set_variable": {
+                      "name": "hyper_seq_g_g_step1",
+                      "value": 1
+                    }
+                  }
+                ],
+                "to_delayed_action": {
+                  "to_if_canceled": [
+                    {
+                      "set_variable": {
+                        "name": "hyper_seq_g_g_step1",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "set_variable": {
+                        "name": "hyper_seq_g_g_step0",
+                        "value": 0
+                      }
+                    }
+                  ],
+                  "to_if_invoked": []
+                },
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  }
+                ],
+                "parameters": {
+                  "basic.to_delayed_action_delay_milliseconds": 300
+                }
+              }
+            ]
+          },
+          {
+            "description": "hyper sequence: g+g",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "g",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "set_variable": {
+                      "name": "hyper_seq_g_g_step2",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "key_code": "home"
+                  },
+                  {
+                    "set_variable": {
+                      "name": "hyper_seq_g_g_step2",
+                      "value": 0
+                    }
+                  },
+                  {
+                    "set_variable": {
+                      "name": "hyper_seq_g_g_step1",
+                      "value": 0
+                    }
+                  }
+                ],
+                "to_delayed_action": {
+                  "to_if_canceled": [
+                    {
+                      "set_variable": {
+                        "name": "hyper_seq_g_g_step2",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "set_variable": {
+                        "name": "hyper_seq_g_g_step1",
+                        "value": 0
+                      }
+                    }
+                  ],
+                  "to_if_invoked": []
+                },
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper",
+                    "value": 1
+                  },
+                  {
+                    "type": "variable_if",
+                    "name": "hyper_seq_g_g_step1",
+                    "value": 1
+                  }
+                ],
+                "parameters": {
+                  "basic.to_delayed_action_delay_milliseconds": 300
+                }
+              }
+            ]
+          },
+          {
+            "description": "alt activation",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "right_option",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "set_variable": {
+                      "name": "alt",
+                      "value": 1
+                    }
+                  }
+                ],
+                "to_after_key_up": [
+                  {
+                    "set_variable": {
+                      "name": "alt",
+                      "value": 0
+                    }
+                  }
+                ],
+                "to_if_alone": [
+                  {
+                    "key_code": "escape"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "alt: h \u2192 home",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "h"
+                },
+                "to": [
+                  {
+                    "key_code": "home"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "alt: l \u2192 end",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "l"
+                },
+                "to": [
+                  {
+                    "key_code": "end"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "alt: u \u2192 page_up",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "u"
+                },
+                "to": [
+                  {
+                    "key_code": "page_up"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "alt: d \u2192 page_down",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "d"
+                },
+                "to": [
+                  {
+                    "key_code": "page_down"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper_alt stacked activation",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "simultaneous": [
+                    {
+                      "key_code": "right_command"
+                    },
+                    {
+                      "key_code": "right_option"
+                    }
+                  ]
+                },
+                "to": [
+                  {
+                    "set_variable": {
+                      "name": "hyper_alt",
+                      "value": 1
+                    }
+                  }
+                ],
+                "to_after_key_up": [
+                  {
+                    "set_variable": {
+                      "name": "hyper_alt",
+                      "value": 0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper_alt: h \u2192 left_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "h"
+                },
+                "to": [
+                  {
+                    "key_code": "left_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper_alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper_alt: l \u2192 right_arrow",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "l"
+                },
+                "to": [
+                  {
+                    "key_code": "right_arrow"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper_alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "hyper_alt macro: t \u2192 typed_text",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": {
+                  "key_code": "t",
+                  "modifiers": {
+                    "optional": [
+                      "any"
+                    ]
+                  }
+                },
+                "to": [
+                  {
+                    "shell_command": "osascript -e 'tell application \"System Events\" to keystroke \"Stacked layer activated!\"'"
+                  }
+                ],
+                "conditions": [
+                  {
+                    "type": "variable_if",
+                    "name": "hyper_alt",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
