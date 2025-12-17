@@ -1,6 +1,5 @@
 """Tests for core models."""
 
-import pytest
 from karabinerpyx import KarabinerConfig, Manipulator, Profile, Rule
 
 
@@ -48,7 +47,11 @@ class TestManipulator:
 
     def test_when_app_multiple(self):
         """Test multiple app conditions."""
-        m = Manipulator("a").to("b").when_app(["com.apple.Terminal", "com.microsoft.VSCode"])
+        m = (
+            Manipulator("a")
+            .to("b")
+            .when_app(["com.apple.Terminal", "com.microsoft.VSCode"])
+        )
         result = m.build()
 
         assert result["conditions"][0]["bundle_identifiers"] == [
@@ -104,10 +107,12 @@ class TestRule:
 
     def test_extend(self):
         """Test extending rule with multiple manipulators."""
-        rule = Rule("Extended rule").extend([
-            Manipulator("a").to("b"),
-            Manipulator("c").to("d"),
-        ])
+        rule = Rule("Extended rule").extend(
+            [
+                Manipulator("a").to("b"),
+                Manipulator("c").to("d"),
+            ]
+        )
         result = rule.build()
 
         assert len(result["manipulators"]) == 2

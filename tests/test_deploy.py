@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
-from karabinerpyx import KarabinerConfig, Profile, Rule, Manipulator
+from karabinerpyx import KarabinerConfig, Profile
 from karabinerpyx.deploy import (
     backup_config,
     validate_json,
@@ -174,7 +174,7 @@ class TestReloadKarabiner:
     def test_reload_success_second_try(self, mock_run, mock_check_output):
         """Test successful reload on second try (fallback)."""
         from subprocess import CalledProcessError
-        
+
         # First call fails, second succeeds
         mock_run.side_effect = [
             CalledProcessError(1, "cmd"),
@@ -190,7 +190,7 @@ class TestReloadKarabiner:
     def test_reload_failure(self, mock_run, mock_check_output):
         """Test reload failure."""
         from subprocess import CalledProcessError
-        
+
         mock_run.side_effect = CalledProcessError(1, "cmd")
         mock_check_output.side_effect = CalledProcessError(1, "cmd")
 

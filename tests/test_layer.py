@@ -1,6 +1,5 @@
 """Tests for layer system."""
 
-import pytest
 from karabinerpyx import LayerStackBuilder, SimultaneousManipulator
 
 
@@ -113,9 +112,7 @@ class TestLayerStackBuilder:
 
         seq_rule = rules[1].build()
         manip = seq_rule["manipulators"][0]
-        assert (
-            manip["parameters"]["basic.to_delayed_action_delay_milliseconds"] == 300
-        )
+        assert manip["parameters"]["basic.to_delayed_action_delay_milliseconds"] == 300
 
     def test_app_condition(self):
         """Test app condition on layer."""

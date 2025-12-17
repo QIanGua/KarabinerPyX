@@ -36,19 +36,23 @@ class Manipulator:
         """Add app condition."""
         if isinstance(app_identifiers, str):
             app_identifiers = [app_identifiers]
-        self.conditions.append({
-            "type": "frontmost_application_if",
-            "bundle_identifiers": app_identifiers,
-        })
+        self.conditions.append(
+            {
+                "type": "frontmost_application_if",
+                "bundle_identifiers": app_identifiers,
+            }
+        )
         return self
 
     def when_variable(self, var_name: str, value: int = 1) -> Manipulator:
         """Add variable condition."""
-        self.conditions.append({
-            "type": "variable_if",
-            "name": var_name,
-            "value": value,
-        })
+        self.conditions.append(
+            {
+                "type": "variable_if",
+                "name": var_name,
+                "value": value,
+            }
+        )
         return self
 
     def build(self) -> dict[str, Any]:
@@ -164,4 +168,5 @@ class KarabinerConfig:
             The path where the config was saved.
         """
         from karabinerpyx.deploy import save_config
+
         return save_config(self, path, apply=apply)

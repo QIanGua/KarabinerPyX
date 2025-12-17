@@ -115,10 +115,12 @@ class LayerStackBuilder:
         """
         if isinstance(app_identifiers, str):
             app_identifiers = [app_identifiers]
-        self.app_conditions.append({
-            "type": "frontmost_application_if",
-            "bundle_identifiers": app_identifiers,
-        })
+        self.app_conditions.append(
+            {
+                "type": "frontmost_application_if",
+                "bundle_identifiers": app_identifiers,
+            }
+        )
         return self
 
     def set_sequence_timeout(self, ms: int) -> LayerStackBuilder:
@@ -157,9 +159,7 @@ class LayerStackBuilder:
                 "type": "basic",
                 "from": {"key_code": key, "modifiers": {"optional": ["any"]}},
                 "to": [{"set_variable": {"name": self.name, "value": 1}}],
-                "to_after_key_up": [
-                    {"set_variable": {"name": self.name, "value": 0}}
-                ],
+                "to_after_key_up": [{"set_variable": {"name": self.name, "value": 0}}],
                 "to_if_alone": [{"key_code": "escape"}],
             }
             return Rule(f"{self.name} activation").add_dict(activation)
@@ -167,13 +167,9 @@ class LayerStackBuilder:
             # Stacked layer: hold multiple trigger keys
             activation = {
                 "type": "basic",
-                "from": {
-                    "simultaneous": [{"key_code": k} for k in self.trigger_keys]
-                },
+                "from": {"simultaneous": [{"key_code": k} for k in self.trigger_keys]},
                 "to": [{"set_variable": {"name": self.name, "value": 1}}],
-                "to_after_key_up": [
-                    {"set_variable": {"name": self.name, "value": 0}}
-                ],
+                "to_after_key_up": [{"set_variable": {"name": self.name, "value": 0}}],
             }
             return Rule(f"{self.name} stacked activation").add_dict(activation)
 
@@ -184,21 +180,24 @@ class LayerStackBuilder:
             if isinstance(to_target, dict) and "template" in to_target:
                 # Macro mapping
                 rules.append(
-                    Rule(f"{self.name} macro: {from_key} → {to_target['template']}")
-                    .add_dict({
-                        "type": "basic",
-                        "from": {
-                            "key_code": from_key,
-                            "modifiers": {"optional": ["any"]},
-                        },
-                        "to": make_shell_command(
-                            to_target["template"], **to_target["params"]
-                        ),
-                        "conditions": [
-                            {"type": "variable_if", "name": self.name, "value": 1}
-                        ]
-                        + self.app_conditions,
-                    })
+                    Rule(
+                        f"{self.name} macro: {from_key} → {to_target['template']}"
+                    ).add_dict(
+                        {
+                            "type": "basic",
+                            "from": {
+                                "key_code": from_key,
+                                "modifiers": {"optional": ["any"]},
+                            },
+                            "to": make_shell_command(
+                                to_target["template"], **to_target["params"]
+                            ),
+                            "conditions": [
+                                {"type": "variable_if", "name": self.name, "value": 1}
+                            ]
+                            + self.app_conditions,
+                        }
+                    )
                 )
             else:
                 # Simple key mapping
@@ -232,11 +231,13 @@ class LayerStackBuilder:
                 ] + self.app_conditions
 
                 if i > 0:
-                    conds.append({
-                        "type": "variable_if",
-                        "name": f"{seq_name}_step{i}",
-                        "value": 1,
-                    })
+                    conds.append(
+                        {
+                            "type": "variable_if",
+                            "name": f"{seq_name}_step{i}",
+                            "value": 1,
+                        }
+                    )
 
                 manip: dict[str, Any] = {
                     "type": "basic",
@@ -244,8 +245,18 @@ class LayerStackBuilder:
                     "to": [{"set_variable": {"name": next_var, "value": 1}}],
                     "to_delayed_action": {
                         "to_if_canceled": [
-                            {"set_variable": {"name": f"{seq_name}_step{i + 1}", "value": 0}},
-                            {"set_variable": {"name": f"{seq_name}_step{i}", "value": 0}},
+                            {
+                                "set_variable": {
+                                    "name": f"{seq_name}_step{i + 1}",
+                                    "value": 0,
+                                }
+                            },
+                            {
+                                "set_variable": {
+                                    "name": f"{seq_name}_step{i}",
+                                    "value": 0,
+                                }
+                            },
                         ],
                         "to_if_invoked": [],
                     },
@@ -259,7 +270,12 @@ class LayerStackBuilder:
                 if i == len(seq) - 1:
                     manip["to"].append({"key_code": to_key})
                     manip["to"].append(
-                        {"set_variable": {"name": f"{seq_name}_step{i + 1}", "value": 0}}
+                        {
+                            "set_variable": {
+                                "name": f"{seq_name}_step{i + 1}",
+                                "value": 0,
+                            }
+                        }
                     )
                     manip["to"].append(
                         {"set_variable": {"name": f"{seq_name}_step{i}", "value": 0}}

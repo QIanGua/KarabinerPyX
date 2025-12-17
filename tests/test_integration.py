@@ -4,13 +4,10 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
 from karabinerpyx import (
     KarabinerConfig,
     LayerStackBuilder,
-    Manipulator,
     Profile,
-    Rule,
 )
 
 
@@ -53,11 +50,7 @@ class TestFullWorkflow:
             .map("j", "left_arrow")
             .map("k", "down_arrow")
         )
-        alt = (
-            LayerStackBuilder("alt", "right_option")
-            .map("h", "home")
-            .map("l", "end")
-        )
+        alt = LayerStackBuilder("alt", "right_option").map("h", "home").map("l", "end")
 
         # Stacked layer
         hyper_alt = (
