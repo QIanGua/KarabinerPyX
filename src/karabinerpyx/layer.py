@@ -16,11 +16,13 @@ class SimultaneousManipulator(Manipulator):
         combo_keys: list[str],
         to_key: str,
         variable_name: str,
+        conditions: list[dict[str, Any]] | None = None,
     ):
         super().__init__(combo_keys[0])
         self.combo_keys = combo_keys
         self.to_key = to_key
         self.variable_name = variable_name
+        self.extra_conditions = conditions or []
 
     def build(self) -> dict[str, Any]:
         """Build the simultaneous manipulator dictionary."""
@@ -33,7 +35,8 @@ class SimultaneousManipulator(Manipulator):
             "to": [{"key_code": self.to_key}],
             "conditions": [
                 {"type": "variable_if", "name": self.variable_name, "value": 1}
-            ],
+            ]
+            + self.extra_conditions,
         }
 
 
@@ -201,11 +204,10 @@ class LayerStackBuilder:
                 )
             else:
                 # Simple key mapping
-                rules.append(
-                    Rule(f"{self.name}: {from_key} → {to_target}").add(
-                        Manipulator(from_key).to(to_target).when_variable(self.name)
-                    )
-                )
+                manip = Manipulator(from_key).to(to_target).when_variable(self.name)
+                for cond in self.app_conditions:
+                    manip.conditions.append(cond)
+                rules.append(Rule(f"{self.name}: {from_key} → {to_target}").add(manip))
         return rules
 
     def _build_combo_rules(self) -> list[Rule]:
@@ -214,7 +216,9 @@ class LayerStackBuilder:
         for combo, to_key in self.combos:
             rules.append(
                 Rule(f"{self.name} combo {'+'.join(combo)} → {to_key}").add(
-                    SimultaneousManipulator(combo, to_key, self.name)
+                    SimultaneousManipulator(
+                        combo, to_key, self.name, self.app_conditions
+                    )
                 )
             )
         return rules
