@@ -102,7 +102,9 @@ def main():
     )
 
     # Restore command
-    restore_parser = subparsers.add_parser("restore", help="Restore configuration from backup")
+    restore_parser = subparsers.add_parser(
+        "restore", help="Restore configuration from backup"
+    )
     restore_parser.add_argument(
         "--index", type=int, help="Index of backup to restore (0 for latest)"
     )
@@ -126,12 +128,16 @@ def main():
             if 0 <= args.index < len(backups):
                 target_backup = backups[args.index]
             else:
-                print(f"❌ Invalid index: {args.index}. Available: 0 to {len(backups) - 1}")
+                print(
+                    f"❌ Invalid index: {args.index}. Available: 0 to {len(backups) - 1}"
+                )
                 return
         else:
             print("📂 Available backups (newest first):")
             for i, b in enumerate(backups):
-                mtime = datetime.fromtimestamp(b.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                mtime = datetime.fromtimestamp(b.stat().st_mtime).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 print(f"  [{i}] {b.name} ({mtime})")
 
             try:

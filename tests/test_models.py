@@ -17,7 +17,7 @@ class TestManipulator:
 
     def test_multiple_to_keys(self):
         """Test mapping to multiple keys."""
-        m = Manipulator("a").to("b", "c")
+        m = Manipulator("a").to("b").to("c")
         result = m.build()
 
         assert result["to"] == [{"key_code": "b"}, {"key_code": "c"}]

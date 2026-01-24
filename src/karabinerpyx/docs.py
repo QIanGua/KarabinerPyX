@@ -30,11 +30,23 @@ def generate_markdown(config: KarabinerConfig) -> str:
 
                 to_parts = []
                 if manip.to_keys:
-                    to_parts.append(f"→ `{' + '.join(manip.to_keys)}`")
+                    keys = [
+                        k["key_code"] if isinstance(k, dict) else k
+                        for k in manip.to_keys
+                    ]
+                    to_parts.append(f"→ `{' + '.join(keys)}`")
                 if manip.to_if_alone:
-                    to_parts.append(f"Alone: `{' + '.join(manip.to_if_alone)}`")
+                    keys = [
+                        k["key_code"] if isinstance(k, dict) else k
+                        for k in manip.to_if_alone
+                    ]
+                    to_parts.append(f"Alone: `{' + '.join(keys)}`")
                 if manip.to_if_held_down:
-                    to_parts.append(f"Held: `{' + '.join(manip.to_if_held_down)}`")
+                    keys = [
+                        k["key_code"] if isinstance(k, dict) else k
+                        for k in manip.to_if_held_down
+                    ]
+                    to_parts.append(f"Held: `{' + '.join(keys)}`")
 
                 to_str = "<br>".join(to_parts)
 

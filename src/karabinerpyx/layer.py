@@ -14,30 +14,59 @@ class SimultaneousManipulator(Manipulator):
     def __init__(
         self,
         combo_keys: list[str],
-        to_key: str,
+        to_key: str | list[dict[str, Any]],
         variable_name: str,
         conditions: list[dict[str, Any]] | None = None,
+        **options: Any,
     ):
         super().__init__(combo_keys[0])
         self.combo_keys = combo_keys
-        self.to_key = to_key
+        self.to_target = to_key if isinstance(to_key, list) else [{"key_code": to_key}]
         self.variable_name = variable_name
         self.extra_conditions = conditions or []
+        self.options = options
 
     def build(self) -> dict[str, Any]:
         """Build the simultaneous manipulator dictionary."""
-        return {
+        sim_options = {
+            "detect_key_down_uninterruptedly": self.options.get(
+                "detect_key_down_uninterruptedly", False
+            ),
+            "key_down_order": self.options.get("key_down_order", "insensitive"),
+            "key_up_order": self.options.get("key_up_order", "insensitive"),
+            "key_up_when": self.options.get("key_up_when", "any"),
+        }
+
+        # Clean up defaults to keep JSON small
+        if not sim_options["detect_key_down_uninterruptedly"]:
+            del sim_options["detect_key_down_uninterruptedly"]
+        if sim_options["key_down_order"] == "insensitive":
+            del sim_options["key_down_order"]
+        if sim_options["key_up_order"] == "insensitive":
+            del sim_options["key_up_order"]
+        if sim_options["key_up_when"] == "any":
+            del sim_options["key_up_when"]
+
+        res: dict[str, Any] = {
             "type": "basic",
             "from": {
                 "simultaneous": [{"key_code": k} for k in self.combo_keys],
                 "modifiers": {"optional": ["any"]},
             },
-            "to": [{"key_code": self.to_key}],
+            "to": self.to_target,
             "conditions": [
                 {"type": "variable_if", "name": self.variable_name, "value": 1}
             ]
             + self.extra_conditions,
         }
+
+        if sim_options:
+            res["from"]["simultaneous_options"] = sim_options
+
+        if "to_after_key_up" in self.options:
+            res["to_after_key_up"] = self.options["to_after_key_up"]
+
+        return res
 
 
 class LayerStackBuilder:
@@ -59,10 +88,12 @@ class LayerStackBuilder:
             trigger_keys if isinstance(trigger_keys, list) else [trigger_keys]
         )
         self.mappings: list[tuple[str, str | dict[str, Any]]] = []
-        self.combos: list[tuple[list[str], str]] = []
+        self.combos: list[
+            tuple[list[str], str | list[dict[str, Any]], dict[str, Any]]
+        ] = []
         self.sequences: list[tuple[list[str], str]] = []
         self.sequence_timeout_ms = 500
-        self.app_conditions: list[dict[str, Any]] = []
+        self.conditions: list[dict[str, Any]] = []
 
     def map(self, from_key: str, to_key: str) -> LayerStackBuilder:
         """Add a simple key mapping within this layer.
@@ -74,14 +105,20 @@ class LayerStackBuilder:
         self.mappings.append((from_key, to_key))
         return self
 
-    def map_combo(self, combo_keys: list[str], to_key: str) -> LayerStackBuilder:
+    def map_combo(
+        self,
+        combo_keys: list[str],
+        to_key: str | list[dict[str, Any]],
+        **options: Any,
+    ) -> LayerStackBuilder:
         """Add a combo (simultaneous keys) mapping.
 
         Args:
             combo_keys: Keys that must be pressed together.
-            to_key: Target key code.
+            to_key: Target key code or list of to-actions.
+            **options: Simultaneous options (key_down_order, to_after_key_up, etc.)
         """
-        self.combos.append((combo_keys, to_key))
+        self.combos.append((combo_keys, to_key, options))
         return self
 
     def map_sequence(self, seq_keys: list[str], to_key: str) -> LayerStackBuilder:
@@ -118,10 +155,37 @@ class LayerStackBuilder:
         """
         if isinstance(app_identifiers, str):
             app_identifiers = [app_identifiers]
-        self.app_conditions.append(
+        self.conditions.append(
             {
                 "type": "frontmost_application_if",
                 "bundle_identifiers": app_identifiers,
+            }
+        )
+        return self
+
+    def unless_app(self, app_identifiers: str | list[str]) -> LayerStackBuilder:
+        """Exclude specific apps from this layer.
+
+        Args:
+            app_identifiers: Bundle identifier(s) of the app(s).
+        """
+        if isinstance(app_identifiers, str):
+            app_identifiers = [app_identifiers]
+        self.conditions.append(
+            {
+                "type": "frontmost_application_unless",
+                "bundle_identifiers": app_identifiers,
+            }
+        )
+        return self
+
+    def unless_variable(self, var_name: str, value: int = 1) -> LayerStackBuilder:
+        """Exclude this layer if a variable has a specific value."""
+        self.conditions.append(
+            {
+                "type": "variable_unless",
+                "name": var_name,
+                "value": value,
             }
         )
         return self
@@ -198,14 +262,14 @@ class LayerStackBuilder:
                             "conditions": [
                                 {"type": "variable_if", "name": self.name, "value": 1}
                             ]
-                            + self.app_conditions,
+                            + self.conditions,
                         }
                     )
                 )
             else:
                 # Simple key mapping
                 manip = Manipulator(from_key).to(to_target).when_variable(self.name)
-                for cond in self.app_conditions:
+                for cond in self.conditions:
                     manip.conditions.append(cond)
                 rules.append(Rule(f"{self.name}: {from_key} → {to_target}").add(manip))
         return rules
@@ -213,11 +277,12 @@ class LayerStackBuilder:
     def _build_combo_rules(self) -> list[Rule]:
         """Build rules for combo mappings."""
         rules: list[Rule] = []
-        for combo, to_key in self.combos:
+        for combo, to_target, options in self.combos:
+            to_desc = to_target if isinstance(to_target, str) else "complex"
             rules.append(
-                Rule(f"{self.name} combo {'+'.join(combo)} → {to_key}").add(
+                Rule(f"{self.name} combo {'+'.join(combo)} → {to_desc}").add(
                     SimultaneousManipulator(
-                        combo, to_key, self.name, self.app_conditions
+                        combo, to_target, self.name, self.conditions, **options
                     )
                 )
             )
@@ -232,7 +297,7 @@ class LayerStackBuilder:
                 next_var = f"{seq_name}_step{i + 1}"
                 conds: list[dict[str, Any]] = [
                     {"type": "variable_if", "name": self.name, "value": 1}
-                ] + self.app_conditions
+                ] + self.conditions
 
                 if i > 0:
                     conds.append(
