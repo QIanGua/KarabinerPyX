@@ -32,7 +32,17 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run pytest --cov=src/karabinerpyx --cov-report=xml
+            uv run pytest --cov=src/karabinerpyx --cov-report=xml
+
+      - name: Verify Documentation is Up-to-date
+        run: |
+            uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md
+            if [ -n "$(git status --porcelain CHEAT_SHEET.md)" ]; then
+              echo "❌ CHEAT_SHEET.md is out of date. Please run 'just docs' locally and commit the changes."
+              git diff CHEAT_SHEET.md
+              exit 1
+            fi
+            echo "✅ CHEAT_SHEET.md is up to date."
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

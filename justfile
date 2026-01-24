@@ -29,6 +29,14 @@ test-cov:
 example:
     uv run python examples/demo.py
 
+# 生成说明文档
+docs:
+    uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md
+
+# 一键检查：格式化 -> 检查 -> 测试 -> 生成文档
+check: fmt lint test docs
+    @echo "✅ All checks passed and documentation updated!"
+
 # 构建包
 build:
     uv build

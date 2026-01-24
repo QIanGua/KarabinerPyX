@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: update-docs
+        name: Update KarabinerPyX Cheat Sheet
+        entry: bash -c "uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md && git add CHEAT_SHEET.md"
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -14,8 +14,8 @@ from pathlib import Path
 from karabinerpyx import KarabinerConfig, LayerStackBuilder, Profile
 
 
-def main():
-    """Build and save a complete Karabiner configuration."""
+def get_config() -> KarabinerConfig:
+    """Build and return a complete Karabiner configuration."""
 
     # ===========================================
     # Layer 1: Hyper Layer (Right Command)
@@ -71,15 +71,18 @@ def main():
         for rule in layer.build_rules():
             profile.add_rule(rule)
 
-    # ===========================================
-    # Build and Save Config
-    # ===========================================
+    # Build and Return Config
     config = KarabinerConfig().add_profile(profile)
+    return config
 
+
+if __name__ == "__main__":
+    config = get_config()
     # Save to current directory for demo (not the actual Karabiner location)
     output_path = Path(__file__).parent.parent / "karabiner_demo.json"
     config.save(path=output_path, apply=False)
 
+    profile = config.profiles[0]
     print(f"\n📝 Generated configuration with {len(profile.rules)} rules:")
     for i, rule in enumerate(profile.rules, 1):
         print(f"   {i}. {rule.description}")
@@ -88,7 +91,3 @@ def main():
     print(f"   1. Review: {output_path}")
     print(f"   2. Copy to: ~/.config/karabiner/karabiner.json")
     print(f"   3. Or use: config.save(apply=True)")
-
-
-if __name__ == "__main__":
-    main()
