@@ -238,7 +238,7 @@ def save_config(
         if dry_run:
             show_diff(old_json, json_str, path)
             return path
-        # In non-dry-run mode, we still might want to show diff if it's small? 
+        # In non-dry-run mode, we still might want to show diff if it's small?
         # For now, let's just focus on dry_run as requested.
 
     if dry_run:

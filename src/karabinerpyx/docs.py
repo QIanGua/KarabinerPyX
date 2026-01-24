@@ -27,7 +27,7 @@ def generate_markdown(config: KarabinerConfig) -> str:
                 # Basic manipulator representation
                 # This could be improved by checking specific types of manipulators
                 from_str = f"`{manip.from_key}`"
-                
+
                 to_parts = []
                 if manip.to_keys:
                     to_parts.append(f"→ `{' + '.join(manip.to_keys)}`")
@@ -35,9 +35,9 @@ def generate_markdown(config: KarabinerConfig) -> str:
                     to_parts.append(f"Alone: `{' + '.join(manip.to_if_alone)}`")
                 if manip.to_if_held_down:
                     to_parts.append(f"Held: `{' + '.join(manip.to_if_held_down)}`")
-                
+
                 to_str = "<br>".join(to_parts)
-                
+
                 cond_parts = []
                 for cond in manip.conditions:
                     if cond["type"] == "frontmost_application_if":
@@ -47,13 +47,13 @@ def generate_markdown(config: KarabinerConfig) -> str:
                         cond_parts.append(f"Var: {cond['name']}=={cond['value']}")
                     else:
                         cond_parts.append(cond["type"])
-                
+
                 cond_str = "<br>".join(cond_parts) if cond_parts else "-"
-                
+
                 lines.append(f"| {from_str} | {to_str} | {cond_str} |")
-            
+
             lines.append("")
-    
+
     return "\n".join(lines)
 
 

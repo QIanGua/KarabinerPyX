@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-import os
 import sys
 from pathlib import Path
-from typing import Any
 
 from karabinerpyx.models import KarabinerConfig
 from karabinerpyx.deploy import save_config
@@ -90,7 +88,10 @@ def main():
     docs_parser = subparsers.add_parser("docs", help="Generate Markdown cheat sheet")
     docs_parser.add_argument("script", help="Path to Python config script")
     docs_parser.add_argument(
-        "-o", "--output", default="CHEAT_SHEET.md", help="Output file (default: CHEAT_SHEET.md)"
+        "-o",
+        "--output",
+        default="CHEAT_SHEET.md",
+        help="Output file (default: CHEAT_SHEET.md)",
     )
 
     args = parser.parse_args()

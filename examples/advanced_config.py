@@ -10,61 +10,61 @@ This example demonstrates:
 from __future__ import annotations
 
 from karabinerpyx import KarabinerConfig, Profile, LayerStackBuilder
+from karabinerpyx.presets import hyper_key_rule, vim_navigation, common_system_shortcuts
 
-def main():
+
+def get_config() -> KarabinerConfig:
     # 1. Initialize Config and Profile
     config = KarabinerConfig()
     profile = Profile("Production Profile")
 
-    # 2. Define Hyper Layer (Right Command)
+    # 2. Add Hyper Key (Caps Lock -> Right Command)
+    profile.add_rule(hyper_key_rule("caps_lock", "right_command"))
+
+    # 3. Define Hyper Layer (Right Command)
     # This is the primary navigation and utility layer
     hyper = LayerStackBuilder("hyper", "right_command")
     
-    # Basic Navigation (Vim-style)
-    hyper.map("h", "left_arrow")
-    hyper.map("j", "down_arrow")
-    hyper.map("k", "up_arrow")
-    hyper.map("l", "right_arrow")
+    # Use Presets for Navigation and System Shortcuts
+    vim_navigation(hyper)
+    common_system_shortcuts(hyper)
     
-    # Quick Text Sequences
-    hyper.map_sequence(["g", "g"], "home")
+    # Custom mappings in Hyper layer
     hyper.map_sequence(["shift", "g"], "end")
     
     # App-specific mappings in Hyper layer
     # Only active when VS Code is frontmost
     hyper_vscode = LayerStackBuilder("hyper_vscode", "right_command").when_app("com.microsoft.VSCode")
-    hyper_vscode.map("p", "p").map("command", "command")  # Example: Quick open
+    hyper_vscode.map("p", "p")  # Example: Quick open
 
-    # 3. Define Window Management Layer (Stacked: Hyper + Alt)
+    # 4. Define Window Management Layer (Stacked: Hyper + Alt)
     # Triggered by holding both Right Command and Right Option
     window_mgmt = LayerStackBuilder("window_mgmt", ["right_command", "right_option"])
     
-    # Map to Rectangle/Magnet shortcuts (assumes Cmd+Alt+Ctrl + Keys)
-    def map_window(key: str, action: str):
-        # Placeholder for complex modifier mapping
-        # In a real scenario, you'd map to the specific shortcut of your window manager
-        window_mgmt.map(key, action)
-
     window_mgmt.map("h", "left_arrow")  # Snap Left
     window_mgmt.map("l", "right_arrow") # Snap Right
     window_mgmt.map("f", "f")           # Fullscreen
 
-    # 4. Developer Macros
+    # 5. Developer Macros
     dev_macros = LayerStackBuilder("dev", "right_control")
     dev_macros.map_macro("c", template_type="typed_text", text="git commit -m \"\"")
     dev_macros.map_macro("p", template_type="typed_text", text="git push")
     dev_macros.map_macro("l", template_type="typed_text", text="console.log()")
 
-    # 5. Build and Assemble
-    for layer in [hyper, window_mgmt, dev_macros]:
+    # 6. Build and Assemble
+    for layer in [hyper, hyper_vscode, window_mgmt, dev_macros]:
         for rule in layer.build_rules():
             profile.add_rule(rule)
 
     config.add_profile(profile)
+    return config
 
-    # 6. Save (dry-run/print for example)
+
+def main():
+    config = get_config()
+    # 7. Save (dry-run/print for example)
     print("Generated Advanced Configuration:")
-    print(config.to_json())
+    config.save(dry_run=True)
     
     # To apply:
     # config.save(apply=True)
