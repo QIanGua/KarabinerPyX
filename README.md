@@ -44,8 +44,8 @@ KarabinerPyX 综合并扩展了以下项目的思想：
 * **Configuration as Code**
 * **Declarative over Imperative**
 * **Composable Layers**
-* **Safe by Default**
-* **Automation First**
+* **Safe by Default**: 自动备份旧配置（保留最近10个），应用前支持 Dry-run 预览差异。
+* **Automation First**: 每次 commit 自动同步文档，CLI 级一键部署。
 
 ---
 
@@ -258,7 +258,24 @@ KarabinerPyX 包含一个功能强大的命令行工具，用于管理你的配�
 
 ---
 
-## 9. 使用示例（完整）
+## 9. 核心预设 (Presets)
+
+KarabinerPyX 内置了一些常用的配置片段，可以直接在你的脚本中引用：
+
+```python
+from karabinerpyx.presets import hyper_key_rule, vim_navigation, common_system_shortcuts
+
+# 1. 一键设置 Hyper Key (CapsLock -> Cmd+Ctrl+Opt+Shift)
+profile.add_rule(hyper_key_rule())
+
+# 2. 为任何 Layer 注入 Vim 导航 (HJKL -> 方向键)
+hyper = LayerStackBuilder("hyper", "right_command")
+vim_navigation(hyper)
+```
+
+---
+
+## 10. 使用示例（完整）
 
 ```python
 from karabinerpyx import KarabinerConfig, Profile, LayerStackBuilder
@@ -279,7 +296,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 10. 非功能性需求（NFR）
+## 11. 非功能性需求（NFR）
 
 * 高可维护性
 * 高可扩展性
@@ -288,7 +305,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 11. 项目边界（Out of Scope）
+## 12. 项目边界（Out of Scope）
 
 * 不替代 Karabiner-Elements 本体
 * 不实现 GUI
@@ -296,7 +313,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 12. 项目愿景
+## 13. 项目愿景
 
 > **把键盘映射，从“手写 JSON”
 > 提升为“可编程的人机接口设计语言”。**
@@ -311,7 +328,7 @@ KarabinerPyX 的长期目标是成为：
 
 ---
 
-## 13. License & Future
+## 14. License & Future
 
 * MIT License（建议）
 * 未来方向：
