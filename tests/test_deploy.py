@@ -157,6 +157,37 @@ class TestSaveConfig:
 
             assert result_path == Path(config_path)
 
+    def test_save_dry_run_no_write(self):
+        """Test that dry_run does not write to disk."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "test.json"
+
+            config = KarabinerConfig()
+            config.add_profile(Profile("Test"))
+
+            result_path = save_config(config, config_path, dry_run=True)
+
+            assert result_path == config_path
+            assert not config_path.exists()
+
+    def test_save_dry_run_diff(self, capsys):
+        """Test that dry_run shows diff when file exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "test.json"
+            config_path.write_text('{\n  "old": true\n}')
+
+            config = KarabinerConfig()
+            config.add_profile(Profile("Test"))
+
+            save_config(config, config_path, dry_run=True)
+
+            captured = capsys.readouterr()
+            assert "Changes for" in captured.out
+            # Check for diff symbols
+            assert "-" in captured.out
+            assert "+" in captured.out
+            assert not config_path.read_text().strip() == config.build()
+
 
 class TestReloadKarabiner:
     """Tests for reload_karabiner function."""

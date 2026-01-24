@@ -157,16 +157,24 @@ class KarabinerConfig:
         """Convert to JSON string."""
         return json.dumps(self.build(), indent=indent)
 
-    def save(self, path: Path | str | None = None, apply: bool = False) -> Path:
+    def save(
+        self,
+        path: Path | str | None = None,
+        apply: bool = False,
+        backup: bool = True,
+        dry_run: bool = False,
+    ) -> Path:
         """Save configuration to file.
 
         Args:
             path: Target path. Defaults to ~/.config/karabiner/karabiner.json
             apply: If True, reload Karabiner after saving.
+            backup: If True, backup existing config before overwriting.
+            dry_run: If True, show diff and don't write to file.
 
         Returns:
-            The path where the config was saved.
+            The path where the config was saved (or would be saved).
         """
         from karabinerpyx.deploy import save_config
 
-        return save_config(self, path, apply=apply)
+        return save_config(self, path, apply=apply, backup=backup, dry_run=dry_run)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import json
 import shutil
 import subprocess
@@ -159,11 +160,45 @@ def reload_karabiner() -> bool:
             return False
 
 
+def show_diff(old_json: str, new_json: str, path: Path) -> None:
+    """Show the difference between old and new configuration.
+
+    Args:
+        old_json: The existing configuration JSON string.
+        new_json: The new configuration JSON string.
+        path: The path to the configuration file.
+    """
+    diff = list(
+        difflib.unified_diff(
+            old_json.splitlines(keepends=True),
+            new_json.splitlines(keepends=True),
+            fromfile=f"a/{path.name}",
+            tofile=f"b/{path.name}",
+        )
+    )
+
+    if not diff:
+        print("✨ No changes detected.")
+        return
+
+    print(f"🔍 Changes for {path}:")
+    for line in diff:
+        if line.startswith("+") and not line.startswith("+++"):
+            print(f"\033[32m{line.rstrip()}\033[0m")  # Green
+        elif line.startswith("-") and not line.startswith("---"):
+            print(f"\033[31m{line.rstrip()}\033[0m")  # Red
+        elif line.startswith("^"):
+            print(f"\033[36m{line.rstrip()}\033[0m")  # Cyan
+        else:
+            print(line.rstrip())
+
+
 def save_config(
     config: KarabinerConfig,
     path: Path | str | None = None,
     apply: bool = False,
     backup: bool = True,
+    dry_run: bool = False,
 ) -> Path:
     """Save a Karabiner configuration to file.
 
@@ -172,9 +207,10 @@ def save_config(
         path: Target path. Defaults to ~/.config/karabiner/karabiner.json
         apply: If True, reload Karabiner after saving.
         backup: If True, backup existing config before overwriting.
+        dry_run: If True, show diff and don't write to file.
 
     Returns:
-        The path where the config was saved.
+        The path where the config was saved (or would be saved).
 
     Raises:
         ValueError: If the generated JSON is invalid.
@@ -195,6 +231,20 @@ def save_config(
     json_str = json.dumps(config_dict, indent=2)
     if not validate_json(json_str):
         raise ValueError("Generated JSON is invalid")
+
+    # Show diff if file exists
+    if path.exists():
+        old_json = path.read_text()
+        if dry_run:
+            show_diff(old_json, json_str, path)
+            return path
+        # In non-dry-run mode, we still might want to show diff if it's small? 
+        # For now, let's just focus on dry_run as requested.
+
+    if dry_run:
+        print(f"✨ New file would be created at {path}")
+        print(json_str)
+        return path
 
     # Backup existing config
     if backup and path.exists():
