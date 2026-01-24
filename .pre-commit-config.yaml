@@ -9,8 +9,8 @@ repos:
   - repo: local
     hooks:
       - id: update-docs
-        name: Update KarabinerPyX Cheat Sheet
-        entry: bash -c "uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md && git add CHEAT_SHEET.md"
+        name: Update KarabinerPyX Cheat Sheets
+        entry: bash -c "just docs && git add *.md"
         language: system
         pass_filenames: false
         always_run: true

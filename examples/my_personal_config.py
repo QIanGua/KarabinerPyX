@@ -6,7 +6,7 @@ from karabinerpyx import KarabinerConfig, Profile, Rule, Manipulator
 def get_config() -> KarabinerConfig:
     """
     根据 requirements.md 构建的个性化 Karabiner 配置。
-    
+
     包含功能：
     1. Option + HJKL 映射为 方向键
     2. Ctrl + F/B 映射为 左右方向键
@@ -17,7 +17,7 @@ def get_config() -> KarabinerConfig:
     7. 交换分号 (;) 和 冒号 (:)
     """
     config = KarabinerConfig()
-    profile = Profile("Personalized Profile")
+    profile = Profile("Personalized Profile from KarabinerPyX")
 
     # -------------------------------------------------------------------------
     # 1. Option + HJKL -> 方向键 (Vim 风格)
@@ -123,9 +123,9 @@ def get_config() -> KarabinerConfig:
 if __name__ == "__main__":
     # 使用 CLI 加载此脚本时，会自动寻找 'config' 变量或 'get_config()' 函数
     config = get_config()
-    
+
     # 运行此脚本时执行预览 (dry-run)
     print("🚀 正在生成符合 requirements.md 的配置预览：\n")
     config.save(dry_run=True)
-    
+
     print("\n💡 提示: 使用 'kpyx apply examples/my_personal_config.py' 来正式应用此配置。")

@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      - name: Install just
+        run: brew install just
+
       - name: Lint with ruff
         run: |
           uv run ruff check .
@@ -36,13 +39,13 @@ jobs:
 
       - name: Verify Documentation is Up-to-date
         run: |
-            uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md
-            if [ -n "$(git status --porcelain CHEAT_SHEET.md)" ]; then
-              echo "❌ CHEAT_SHEET.md is out of date. Please run 'just docs' locally and commit the changes."
-              git diff CHEAT_SHEET.md
+            just docs
+            if [ -n "$(git status --porcelain *.md)" ]; then
+              echo "❌ Documentation is out of date. Please run 'just docs' locally and commit the changes."
+              git status --porcelain *.md
               exit 1
             fi
-            echo "✅ CHEAT_SHEET.md is up to date."
+            echo "✅ Documentation is up to date."
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

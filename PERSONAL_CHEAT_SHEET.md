@@ -1,6 +1,6 @@
 # ⌨️ KarabinerPyX Mapping Cheat Sheet
 
-## 👤 Profile: Personalized Profile (Selected)
+## 👤 Profile: Personalized Profile from KarabinerPyX (Selected)
 
 ### 📜 1. Option + HJKL 导航映射
 
