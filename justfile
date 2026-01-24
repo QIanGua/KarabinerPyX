@@ -38,6 +38,10 @@ docs:
 check: fmt lint test docs
     @echo "✅ All checks passed and documentation updated!"
 
+# 恢复备份
+restore:
+    uv run kpyx restore
+
 # 构建包
 build:
     uv build

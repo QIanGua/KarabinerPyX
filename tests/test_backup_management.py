@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 import tempfile
@@ -7,6 +8,8 @@ from karabinerpyx.deploy import (
     backup_config,
     cleanup_backups,
     migrate_legacy_backups,
+    list_backups,
+    restore_config,
 )
 
 
@@ -79,3 +82,27 @@ def test_backup_config_triggers_all():
         assert (backup_dir / legacy.name).exists()
         assert backup_path.exists()
         assert backup_path.parent == backup_dir
+
+
+def test_list_and_restore_config():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        config_path = tmp_path / "karabiner.json"
+        config_path.write_text('{"current": true}')
+
+        backup_dir = tmp_path / "automatic_backups"
+        backup_dir.mkdir()
+
+        # Create a backup
+        backup_path = backup_dir / "karabiner_backup_20260124_120000.json"
+        backup_path.write_text('{"backup": true}')
+
+        # 1. List backups
+        backups = list_backups(config_path)
+        assert len(backups) == 1
+        assert backups[0] == backup_path
+
+        # 2. Restore backup
+        success = restore_config(backup_path, config_path)
+        assert success is True
+        assert json.loads(config_path.read_text()) == {"backup": True}

@@ -245,7 +245,20 @@ config.save(apply=True)
 
 ---
 
-## 8. 使用示例（完整）
+## 8. CLI 工具 (kpyx)
+
+KarabinerPyX 包含一个功能强大的命令行工具，用于管理你的配置：
+
+- `kpyx list <script.py>`：列出脚本中定义的所有 Profile 和 Rule。
+- `kpyx build <script.py> -o output.json`：生成 JSON 文件。
+- `kpyx dry-run <script.py>`：**强烈推荐**，在应用前预览配置差异（Diff）。
+- `kpyx apply <script.py>`：直接应用配置到 Karabiner（包含自动备份和清理）。
+- `kpyx restore`：从备份文件夹中交互式选择并恢复之前的配置。
+- `kpyx docs <script.py> -o CHEAT_SHEET.md`：自动生成 Markdown 格式的说明文档。
+
+---
+
+## 9. 使用示例（完整）
 
 ```python
 from karabinerpyx import KarabinerConfig, Profile, LayerStackBuilder
@@ -266,7 +279,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 9. 非功能性需求（NFR）
+## 10. 非功能性需求（NFR）
 
 * 高可维护性
 * 高可扩展性
@@ -275,7 +288,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 10. 项目边界（Out of Scope）
+## 11. 项目边界（Out of Scope）
 
 * 不替代 Karabiner-Elements 本体
 * 不实现 GUI
@@ -283,7 +296,7 @@ KarabinerConfig().add_profile(profile).save(apply=True)
 
 ---
 
-## 11. 项目愿景
+## 12. 项目愿景
 
 > **把键盘映射，从“手写 JSON”
 > 提升为“可编程的人机接口设计语言”。**
@@ -298,7 +311,7 @@ KarabinerPyX 的长期目标是成为：
 
 ---
 
-## 12. License & Future
+## 13. License & Future
 
 * MIT License（建议）
 * 未来方向：

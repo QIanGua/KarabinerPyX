@@ -6,8 +6,15 @@ import sys
 from pathlib import Path
 
 from karabinerpyx.models import KarabinerConfig
-from karabinerpyx.deploy import save_config
+from karabinerpyx.deploy import (
+    save_config,
+    list_backups,
+    restore_config,
+    reload_karabiner,
+    DEFAULT_CONFIG_PATH,
+)
 from karabinerpyx.docs import save_cheat_sheet
+from datetime import datetime
 
 
 def load_config_from_script(script_path: str) -> KarabinerConfig:
@@ -94,10 +101,63 @@ def main():
         help="Output file (default: CHEAT_SHEET.md)",
     )
 
+    # Restore command
+    restore_parser = subparsers.add_parser("restore", help="Restore configuration from backup")
+    restore_parser.add_argument(
+        "--index", type=int, help="Index of backup to restore (0 for latest)"
+    )
+    restore_parser.add_argument(
+        "--apply", action="store_true", help="Reload Karabiner after restoring"
+    )
+
     args = parser.parse_args()
 
     if not args.command:
         parser.print_help()
+        return
+
+    if args.command == "restore":
+        backups = list_backups()
+        if not backups:
+            print("❌ No backups found.")
+            return
+
+        if args.index is not None:
+            if 0 <= args.index < len(backups):
+                target_backup = backups[args.index]
+            else:
+                print(f"❌ Invalid index: {args.index}. Available: 0 to {len(backups) - 1}")
+                return
+        else:
+            print("📂 Available backups (newest first):")
+            for i, b in enumerate(backups):
+                mtime = datetime.fromtimestamp(b.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                print(f"  [{i}] {b.name} ({mtime})")
+
+            try:
+                choice = input("\nSelect backup index to restore (or 'q' to quit): ")
+                if choice.lower() == "q":
+                    return
+                idx = int(choice)
+                if 0 <= idx < len(backups):
+                    target_backup = backups[idx]
+                else:
+                    print("❌ Invalid selection.")
+                    return
+            except (ValueError, EOFError, KeyboardInterrupt):
+                print("\n❌ Cancelled.")
+                return
+
+        print(f"🔄 Restoring from {target_backup}...")
+        if restore_config(target_backup):
+            print(f"✅ Configuration restored to {DEFAULT_CONFIG_PATH}")
+            if args.apply:
+                if reload_karabiner():
+                    print("🔄 Karabiner configuration reloaded")
+                else:
+                    print("⚠️ Failed to reload Karabiner (try manually)")
+        else:
+            print("❌ Restoration failed.")
         return
 
     config = load_config_from_script(args.script)

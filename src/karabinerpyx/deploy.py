@@ -81,6 +81,53 @@ def backup_config(path: Path | None = None) -> Path | None:
     return backup_path
 
 
+def list_backups(path: Path | None = None) -> list[Path]:
+    """List available backups for the Karabiner configuration.
+
+    Args:
+        path: Path to the config file. Defaults to the standard location.
+
+    Returns:
+        A list of backup file paths, sorted newest first.
+    """
+    if path is None:
+        path = DEFAULT_CONFIG_PATH
+
+    backup_dir = path.parent / "automatic_backups"
+    if not backup_dir.exists():
+        return []
+
+    return sorted(
+        backup_dir.glob("karabiner_backup_*.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+
+def restore_config(backup_path: Path, target_path: Path | None = None) -> bool:
+    """Restore a Karabiner configuration from a backup.
+
+    Args:
+        backup_path: Path to the backup file to restore.
+        target_path: Path to the config file. Defaults to the standard location.
+
+    Returns:
+        True if successful, False otherwise.
+    """
+    if target_path is None:
+        target_path = DEFAULT_CONFIG_PATH
+
+    if not backup_path.exists():
+        return False
+
+    try:
+        shutil.copy2(backup_path, target_path)
+        return True
+    except Exception as e:
+        print(f"❌ Error restoring backup: {e}")
+        return False
+
+
 def validate_json(json_str: str) -> bool:
     """Validate a JSON string.
 
