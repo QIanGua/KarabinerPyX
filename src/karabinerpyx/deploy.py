@@ -32,7 +32,9 @@ def backup_config(path: Path | None = None) -> Path | None:
         return None
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = path.parent / f"karabiner_backup_{timestamp}.json"
+    backup_dir = path.parent / "automatic_backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_dir / f"karabiner_backup_{timestamp}.json"
     shutil.copy2(path, backup_path)
     return backup_path
 

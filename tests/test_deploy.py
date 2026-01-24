@@ -130,8 +130,8 @@ class TestSaveConfig:
 
             save_config(config, config_path, backup=True)
 
-            # Check backup was created
-            backups = list(Path(tmpdir).glob("karabiner_backup_*.json"))
+            backup_dir = Path(tmpdir) / "automatic_backups"
+            backups = list(backup_dir.glob("karabiner_backup_*.json"))
             assert len(backups) == 1
 
     def test_save_invalid_config_raises(self):
