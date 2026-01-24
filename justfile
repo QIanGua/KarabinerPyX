@@ -33,6 +33,7 @@ example:
 docs:
     uv run kpyx docs examples/demo.py -o CHEAT_SHEET.md
     uv run kpyx docs examples/presets_usage.py -o PRESETS_CHEAT_SHEET.md
+    uv run kpyx docs examples/my_personal_config.py -o PERSONAL_CHEAT_SHEET.md
 
 # 一键检查：格式化 -> 检查 -> 测试 -> 生成文档
 check: fmt lint test docs

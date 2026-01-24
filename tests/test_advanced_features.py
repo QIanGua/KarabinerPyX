@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import json
-from karabinerpyx import KarabinerConfig, Profile, Rule, Manipulator, LayerStackBuilder
+from karabinerpyx import Profile, Manipulator, LayerStackBuilder
 
 
 def test_advanced_profile_settings():
