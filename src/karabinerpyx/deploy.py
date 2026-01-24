@@ -15,6 +15,42 @@ if TYPE_CHECKING:
 # Default Karabiner config path
 DEFAULT_CONFIG_PATH = Path.home() / ".config" / "karabiner" / "karabiner.json"
 
+# Backup settings
+MAX_BACKUPS = 10
+
+
+def migrate_legacy_backups(config_path: Path, backup_dir: Path) -> None:
+    """Migrate legacy backups from the config directory to the backup directory.
+
+    Args:
+        config_path: Path to the config file.
+        backup_dir: Path to the backup directory.
+    """
+    for legacy_backup in config_path.parent.glob("karabiner_backup_*.json"):
+        if legacy_backup.is_file():
+            target = backup_dir / legacy_backup.name
+            if not target.exists():
+                shutil.move(legacy_backup, target)
+            else:
+                legacy_backup.unlink()
+
+
+def cleanup_backups(backup_dir: Path, keep: int = MAX_BACKUPS) -> None:
+    """Keep only the most recent backups.
+
+    Args:
+        backup_dir: Path to the backup directory.
+        keep: Number of backups to keep.
+    """
+    backups = sorted(
+        backup_dir.glob("karabiner_backup_*.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+    for old_backup in backups[keep:]:
+        old_backup.unlink()
+
 
 def backup_config(path: Path | None = None) -> Path | None:
     """Backup the existing Karabiner configuration.
@@ -34,6 +70,11 @@ def backup_config(path: Path | None = None) -> Path | None:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = path.parent / "automatic_backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Migrate legacy backups and cleanup
+    migrate_legacy_backups(path, backup_dir)
+    cleanup_backups(backup_dir)
+
     backup_path = backup_dir / f"karabiner_backup_{timestamp}.json"
     shutil.copy2(path, backup_path)
     return backup_path
