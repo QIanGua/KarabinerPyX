@@ -46,6 +46,19 @@ class TestLayerStackBuilder:
         assert manip["to"][0]["key_code"] == "left_arrow"
         assert manip["conditions"][0]["name"] == "hyper"
 
+    def test_dict_mapping(self):
+        """Test mapping to raw dict action."""
+        layer = LayerStackBuilder("hyper", "right_command").map(
+            "j", {"key_code": "left_arrow", "repeat": False}
+        )
+        rules = layer.build_rules()
+
+        mapping_rule = rules[1].build()
+        manip = mapping_rule["manipulators"][0]
+
+        assert manip["to"][0]["key_code"] == "left_arrow"
+        assert manip["to"][0]["repeat"] is False
+
     def test_multiple_mappings(self):
         """Test multiple mappings."""
         layer = (

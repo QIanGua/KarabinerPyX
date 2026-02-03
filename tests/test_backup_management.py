@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 import tempfile
 from karabinerpyx.deploy import (
+    MAX_BACKUPS,
     backup_config,
     cleanup_backups,
     migrate_legacy_backups,
@@ -82,6 +83,30 @@ def test_backup_config_triggers_all():
         assert (backup_dir / legacy.name).exists()
         assert backup_path.exists()
         assert backup_path.parent == backup_dir
+
+
+def test_backup_config_respects_max_backups():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        config_path = tmp_path / "karabiner.json"
+        config_path.write_text('{"current": True}')
+
+        backup_dir = tmp_path / "automatic_backups"
+        backup_dir.mkdir()
+
+        for i in range(MAX_BACKUPS):
+            backup_path = backup_dir / f"karabiner_backup_20260124_{i:06d}.json"
+            backup_path.write_text("{}")
+            atime = time.time() + i
+            mtime = time.time() + i
+            import os
+
+            os.utime(backup_path, (atime, mtime))
+
+        backup_config(config_path)
+
+        remaining = list(backup_dir.glob("karabiner_backup_*.json"))
+        assert len(remaining) == MAX_BACKUPS
 
 
 def test_list_and_restore_config():

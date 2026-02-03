@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import os
 import shutil
 import subprocess
 from datetime import datetime
@@ -72,12 +73,12 @@ def backup_config(path: Path | None = None) -> Path | None:
     backup_dir = path.parent / "automatic_backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    # Migrate legacy backups and cleanup
+    # Migrate legacy backups
     migrate_legacy_backups(path, backup_dir)
-    cleanup_backups(backup_dir)
 
     backup_path = backup_dir / f"karabiner_backup_{timestamp}.json"
     shutil.copy2(path, backup_path)
+    cleanup_backups(backup_dir)
     return backup_path
 
 
@@ -175,12 +176,13 @@ def reload_karabiner() -> bool:
         True if successful, False otherwise.
     """
     try:
+        uid = os.getuid()
         subprocess.run(
             [
                 "launchctl",
                 "kickstart",
                 "-k",
-                "gui/$(id -u)/org.pqrs.karabiner.karabiner_console_user_server",
+                f"gui/{uid}/org.pqrs.karabiner.karabiner_console_user_server",
             ],
             shell=False,
             check=True,

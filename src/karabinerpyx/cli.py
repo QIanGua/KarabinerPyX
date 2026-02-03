@@ -13,7 +13,8 @@ from karabinerpyx.deploy import (
     reload_karabiner,
     DEFAULT_CONFIG_PATH,
 )
-from karabinerpyx.docs import save_cheat_sheet
+from karabinerpyx.docs import save_cheat_sheet, save_cheat_sheet_html
+from karabinerpyx.analytics import compute_static_coverage, format_coverage_report
 from datetime import datetime
 
 
@@ -100,6 +101,23 @@ def main():
         default="CHEAT_SHEET.md",
         help="Output file (default: CHEAT_SHEET.md)",
     )
+    # Docs HTML command
+    docs_html_parser = subparsers.add_parser(
+        "docs-html", help="Generate HTML cheat sheet"
+    )
+    docs_html_parser.add_argument("script", help="Path to Python config script")
+    docs_html_parser.add_argument(
+        "-o",
+        "--output",
+        default="CHEAT_SHEET.html",
+        help="Output file (default: CHEAT_SHEET.html)",
+    )
+
+    # Stats command
+    stats_parser = subparsers.add_parser(
+        "stats", help="Show static coverage report"
+    )
+    stats_parser.add_argument("script", help="Path to Python config script")
 
     # Restore command
     restore_parser = subparsers.add_parser(
@@ -184,6 +202,11 @@ def main():
                 print(f"   {j}. {rule.description}")
     elif args.command == "docs":
         save_cheat_sheet(config, args.output)
+    elif args.command == "docs-html":
+        save_cheat_sheet_html(config, args.output)
+    elif args.command == "stats":
+        report = compute_static_coverage(config)
+        print(format_coverage_report(report))
 
 
 if __name__ == "__main__":

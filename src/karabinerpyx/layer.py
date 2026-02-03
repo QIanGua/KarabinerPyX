@@ -268,7 +268,11 @@ class LayerStackBuilder:
                 )
             else:
                 # Simple key mapping
-                manip = Manipulator(from_key).to(to_target).when_variable(self.name)
+                manip = Manipulator(from_key).when_variable(self.name)
+                if isinstance(to_target, dict):
+                    manip.to_keys.append(to_target)
+                else:
+                    manip.to(to_target)
                 for cond in self.conditions:
                     manip.conditions.append(cond)
                 rules.append(Rule(f"{self.name}: {from_key} → {to_target}").add(manip))
