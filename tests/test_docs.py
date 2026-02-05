@@ -42,7 +42,7 @@ def test_generate_html():
 
     html = generate_html(config)
     assert "<title>KarabinerPyX Mapping Cheat Sheet</title>" in html
-    assert "<h2>Profile: Test Profile</h2>" in html
+    assert "<h2>Profile: Test Profile (Selected)</h2>" in html
     assert "<h3>Navigation</h3>" in html
     assert "<code>h</code>" in html
 

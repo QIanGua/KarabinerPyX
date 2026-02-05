@@ -76,17 +76,25 @@ class LayerStackBuilder:
     defining custom key behaviors within that layer.
     """
 
-    def __init__(self, name: str, trigger_keys: str | list[str]):
+    def __init__(
+        self,
+        name: str,
+        trigger_keys: str | list[str],
+        to_if_alone: str | None = None,
+    ):
         """Initialize a layer.
 
         Args:
             name: Unique name for this layer (used as variable name).
             trigger_keys: Key(s) to hold to activate the layer.
+            to_if_alone: Optional key to send if the trigger key is tapped alone.
+                         Defaults to the trigger key itself (Simlayer behavior).
         """
         self.name = name
         self.trigger_keys = (
             trigger_keys if isinstance(trigger_keys, list) else [trigger_keys]
         )
+        self.to_if_alone = to_if_alone
         self.mappings: list[tuple[str, str | dict[str, Any]]] = []
         self.combos: list[
             tuple[list[str], str | list[dict[str, Any]], dict[str, Any]]
@@ -222,12 +230,19 @@ class LayerStackBuilder:
         if len(self.trigger_keys) == 1:
             # Single trigger key
             key = self.trigger_keys[0]
+
+            # Determine behavior when tapped alone
+            # If to_if_alone is specified, use it.
+            # Otherwise, default to the key itself (Simlayer behavior).
+            alone_key = self.to_if_alone if self.to_if_alone else key
+            to_if_alone_events = [{"key_code": alone_key}]
+
             activation = {
                 "type": "basic",
                 "from": {"key_code": key, "modifiers": {"optional": ["any"]}},
                 "to": [{"set_variable": {"name": self.name, "value": 1}}],
                 "to_after_key_up": [{"set_variable": {"name": self.name, "value": 0}}],
-                "to_if_alone": [{"key_code": "escape"}],
+                "to_if_alone": to_if_alone_events,
             }
             return Rule(f"{self.name} activation").add_dict(activation)
         else:
