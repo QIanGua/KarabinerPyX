@@ -31,6 +31,9 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
 ]
+watch = [
+    "watchfiles>=0.22.0",
+]
 
 [build-system]
 requires = ["hatchling"]
