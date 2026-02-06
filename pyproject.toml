@@ -21,7 +21,9 @@ classifiers = [
     "Topic :: System :: Hardware :: Symmetric Multi-processing",
 ]
 
-dependencies = []
+dependencies = [
+    "watchdog>=3.0.0",
+]
 
 [project.scripts]
 kpyx = "karabinerpyx.cli:main"

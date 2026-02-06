@@ -16,12 +16,16 @@ from karabinerpyx.deploy import (
     save_config,
 )
 from karabinerpyx.docs import save_cheat_sheet, save_cheat_sheet_html
-from karabinerpyx.models import KarabinerConfig
-from karabinerpyx.service import (
-    install_watch_service,
-    service_status,
-    uninstall_watch_service,
-)
+from karabinerpyx.analytics import compute_static_coverage, format_coverage_report
+from datetime import datetime
+import time
+
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+except ImportError:
+    Observer = None
+    FileSystemEventHandler = object
 
 
 def load_config_from_script(
@@ -229,42 +233,132 @@ def main():
         "--apply", action="store_true", help="Reload Karabiner after restoring"
     )
 
-    # Watch command
-    watch_parser = subparsers.add_parser("watch", help="Watch script and auto apply")
-    watch_parser.add_argument(
-        "script", nargs="?", help="Path to Python config script"
+    # Init command
+    init_parser = subparsers.add_parser(
+        "init", help="Create a starter configuration script"
     )
-    watch_mode = watch_parser.add_mutually_exclusive_group()
-    watch_mode.add_argument(
-        "--apply",
-        action="store_true",
-        help="Apply on changes (default)",
-    )
-    watch_mode.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show diff without applying",
-    )
-    watch_parser.add_argument(
-        "--debounce", help="Debounce in milliseconds (default 500)"
+    init_parser.add_argument(
+        "filename",
+        nargs="?",
+        default="karabiner_config.py",
+        help="Filename to create (default: karabiner_config.py)",
     )
 
-    # Service command
-    service_parser = subparsers.add_parser(
-        "service", help="Manage background watch service"
+    # Watch command
+    watch_parser = subparsers.add_parser(
+        "watch", help="Watch script for changes and auto-apply"
     )
-    service_sub = service_parser.add_subparsers(dest="service_command")
-    service_install = service_sub.add_parser("install", help="Install watch service")
-    service_install.add_argument(
-        "script", nargs="?", help="Path to Python config script"
+    watch_parser.add_argument("script", help="Path to Python config script")
+    watch_parser.add_argument(
+        "--no-backup", action="store_false", dest="backup", help="Skip backup"
     )
-    service_sub.add_parser("uninstall", help="Uninstall watch service")
-    service_sub.add_parser("status", help="Show service status")
+    watch_parser.set_defaults(backup=True)
 
     args = parser.parse_args()
 
     if not args.command:
         parser.print_help()
+        return
+
+    if args.command == "init":
+        path = Path(args.filename)
+        if path.exists():
+            print(f"❌ Error: File {path} already exists.")
+            sys.exit(1)
+
+        template = """from karabinerpyx import (
+    KarabinerConfig,
+    Profile,
+    LayerStackBuilder,
+    Rule,
+    Manipulator,
+    CMD,
+    OPT,
+    SHIFT,
+    CTRL,
+)
+
+# 1. Define Layers
+# Example: Spacebar Layer (Tapping Spacebar sends Spacebar. Holding it activates 'nav' layer)
+nav = LayerStackBuilder("nav", "spacebar")
+nav.map("h", "left_arrow")
+nav.map("j", "down_arrow")
+nav.map("k", "up_arrow")
+nav.map("l", "right_arrow")
+
+# 2. Define Profile
+profile = Profile("KarabinerPyX Config")
+
+# Add layer rules
+for rule in nav.build_rules():
+    profile.add_rule(rule)
+
+# Add a simple mapping example: Shift+Cmd+P -> Print Screen (example)
+# profile.add_rule(
+#     Rule("Screenshot").add(
+#         Manipulator("p").modifiers([SHIFT, CMD]).to("print_screen")
+#     )
+# )
+
+# 3. Create Config
+config = KarabinerConfig()
+config.add_profile(profile)
+"""
+        path.write_text(template)
+        print(f"✅ Created starter config at {path}")
+        print("Run 'kpyx apply' or 'kpyx watch' to start using it.")
+        return
+
+    if args.command == "watch":
+        if Observer is None:
+            print("❌ Error: 'watchdog' package is not installed.")
+            print("Install it with: pip install watchdog")
+            sys.exit(1)
+
+        script_path = Path(args.script).resolve()
+        if not script_path.exists():
+            print(f"❌ Error: Script not found: {script_path}")
+            sys.exit(1)
+
+        print(f"👀 Watching {script_path} for changes...")
+
+        # Apply once initially
+        try:
+            config = load_config_from_script(str(script_path))
+            save_config(config, apply=True, backup=args.backup)
+            print("✅ Initial config applied.")
+        except Exception as e:
+            print(f"❌ Error applying initial config: {e}")
+
+        class Handler(FileSystemEventHandler):
+            def __init__(self):
+                self.last_run = 0
+
+            def on_modified(self, event):
+                if Path(event.src_path).resolve() == script_path:
+                    # Debounce (0.5s)
+                    if time.time() - self.last_run < 0.5:
+                        return
+                    self.last_run = time.time()
+
+                    print(f"\n🔄 Detected change, reloading...")
+                    try:
+                        # Re-load config
+                        new_config = load_config_from_script(str(script_path))
+                        save_config(new_config, apply=True, backup=args.backup)
+                        print("✅ Config applied successfully.")
+                    except Exception as e:
+                        print(f"❌ Error applying config: {e}")
+
+        observer = Observer()
+        observer.schedule(Handler(), str(script_path.parent), recursive=False)
+        observer.start()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            observer.stop()
+        observer.join()
         return
 
     if args.command == "restore":
