@@ -114,7 +114,7 @@ class TestFullWorkflow:
 
         # Check mapping rule structure
         mapping = data["profiles"][0]["complex_modifications"]["rules"][1]
-        assert "j → left_arrow" in mapping["description"]
+        assert "j -> left_arrow" in mapping["description"]
         assert mapping["manipulators"][0]["conditions"][0]["type"] == "variable_if"
 
     def test_complex_layer_with_all_features(self):
@@ -143,7 +143,7 @@ class TestFullWorkflow:
         descriptions = [r.build()["description"] for r in rules]
 
         assert any("activation" in d for d in descriptions)
-        assert any("→ left_arrow" in d for d in descriptions)
+        assert any("-> left_arrow" in d for d in descriptions)
         assert any("combo" in d for d in descriptions)
         assert any("sequence" in d for d in descriptions)
         assert any("macro" in d for d in descriptions)

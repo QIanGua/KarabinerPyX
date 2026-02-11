@@ -1,6 +1,7 @@
 """Tests for template system."""
 
 import pytest
+
 from karabinerpyx import MACRO_TEMPLATES, make_shell_command
 from karabinerpyx.templates import register_template
 
@@ -68,6 +69,11 @@ class TestMakeShellCommand:
         with pytest.raises(ValueError, match="Unknown template"):
             make_shell_command("nonexistent_template")
 
+    def test_missing_template_param_raises(self):
+        """Test that missing template params raise ValueError."""
+        with pytest.raises(ValueError, match="Missing template parameter"):
+            make_shell_command("typed_text")
+
 
 class TestRegisterTemplate:
     """Tests for register_template function."""
@@ -79,3 +85,11 @@ class TestRegisterTemplate:
         assert "my_custom" in MACRO_TEMPLATES
         result = make_shell_command("my_custom", message="hello")
         assert result[0]["shell_command"] == 'echo "hello"'
+
+    def test_register_invalid_template_inputs(self):
+        """Test validation for template registration."""
+        with pytest.raises(ValueError, match="Template name cannot be empty"):
+            register_template("", "echo 1")
+
+        with pytest.raises(ValueError, match="Template cannot be empty"):
+            register_template("x", "")

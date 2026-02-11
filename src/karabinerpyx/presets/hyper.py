@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from karabinerpyx.models import Rule, Manipulator
+from karabinerpyx.models import Manipulator, Rule
 
 
 def hyper_key_rule(
@@ -8,21 +8,13 @@ def hyper_key_rule(
     to_key: str = "right_command",
     to_if_alone: str = "escape",
 ) -> Rule:
-    """Create a rule that maps a key to a Hyper Key.
+    """Create a hyper-like key rule.
 
-    Default: caps_lock -> right_command (when held), escape (when tapped).
-
-    Args:
-        from_key: Key to map from.
-        to_key: Modifier to act as.
-        to_if_alone: Key to send if tapped alone.
-
-    Returns:
-        A Rule object.
+    Default behavior is caps_lock -> right_command when held,
+    and escape when tapped alone.
     """
     rule = Rule(f"Hyper Key: {from_key} to {to_key}")
     manip = Manipulator(from_key).to(to_key)
     if to_if_alone:
         manip.if_alone(to_if_alone)
-    rule.add(manip)
-    return rule
+    return rule.add(manip)

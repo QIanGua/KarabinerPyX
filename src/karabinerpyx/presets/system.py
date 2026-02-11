@@ -1,38 +1,28 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from karabinerpyx.models import Rule, Manipulator
+
+from karabinerpyx.models import Manipulator, Rule
 
 if TYPE_CHECKING:
     from karabinerpyx.layer import LayerStackBuilder
 
 
 def app_switcher_enhancement(
-    from_key: str = "tab", to_key: str = "tab", modifiers: list[str] | None = None
+    from_key: str = "tab",
+    to_key: str = "tab",
+    modifiers: list[str] | None = None,
 ) -> Rule:
-    """Enhance Cmd+Tab or Alt+Tab switching.
-
-    This is just a placeholder example for now.
-    """
-    if modifiers is None:
-        modifiers = ["left_command"]
+    """Create an app-switcher helper rule."""
+    active_modifiers = modifiers or ["left_command"]
 
     rule = Rule("App Switcher Enhancement")
-    manip = (
-        Manipulator(from_key).to(to_key).when_app(["com.apple.Switcher"])
-    )  # Just an example
-    rule.add(manip)
-    return rule
+    manip = Manipulator(from_key).modifiers(mandatory=active_modifiers).to(to_key)
+    return rule.add(manip)
 
 
 def common_system_shortcuts(builder: LayerStackBuilder) -> LayerStackBuilder:
-    """Add common system shortcuts to a layer.
-
-    Example:
-        m -> mission_control
-        s -> spotlight
-        c -> control_center
-    """
+    """Add common macOS system shortcut key mappings."""
     return (
         builder.map("m", "mission_control")
         .map("s", "spotlight")

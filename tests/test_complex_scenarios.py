@@ -1,6 +1,7 @@
 """Complex scenario integration tests."""
 
 from __future__ import annotations
+
 from karabinerpyx import LayerStackBuilder
 
 
@@ -8,7 +9,7 @@ class TestComplexScenarios:
     """Test suite for complex layering and stacking scenarios."""
 
     def test_stacked_layer_activation(self):
-        """Test that stacked layers (multiple trigger keys) generate correct activation rules."""
+        """Test stacked layers generate correct activation rules."""
         layer = LayerStackBuilder("stacked", ["left_shift", "left_control"])
         rules = layer.build_rules()
 
@@ -31,11 +32,11 @@ class TestComplexScenarios:
 
         rules = layer.build_rules()
         mapping_rule = next(
-            r for r in rules if "hyper: j → down_arrow" in r.description
+            r for r in rules if "hyper: j -> down_arrow" in r.description
         )
         manip = mapping_rule.manipulators[0].build()
 
-        # Should have 2 conditions: variable_if (layer) and frontmost_application_if (app)
+        # Should have layer variable_if and frontmost_application_if conditions.
         cond_types = [c["type"] for c in manip["conditions"]]
         assert "variable_if" in cond_types
         assert "frontmost_application_if" in cond_types
@@ -76,5 +77,5 @@ class TestComplexScenarios:
         # Check shell_command (mocked via make_shell_command)
         assert "to" in manip
         assert "shell_command" in manip["to"][0]
-        # In the current implementation, make_shell_command is imported from templates.py
+        # make_shell_command is imported from templates.py.
         # We assume it correctly fills the template.

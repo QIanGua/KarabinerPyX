@@ -1,23 +1,53 @@
-"""Core data models for Karabiner configuration."""
+"""Core typed models for Karabiner configuration."""
 
 from __future__ import annotations
 
 import json
+import warnings
+from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 
+class Buildable(Protocol):
+    """Protocol for objects that can be compiled to Karabiner JSON."""
+
+    def build(self) -> dict[str, Any]:
+        """Compile to Karabiner JSON."""
+
+
+@dataclass
+class RawManipulator:
+    """Validated wrapper for low-level manipulator dictionaries."""
+
+    raw: dict[str, Any]
+
+    def __init__(self, raw: Mapping[str, Any]):
+        data = dict(raw)
+        if not isinstance(data.get("type"), str):
+            raise ValueError("Raw manipulator requires string field 'type'")
+        if "from" not in data:
+            raise ValueError("Raw manipulator requires field 'from'")
+        self.raw = data
+
+    def build(self) -> dict[str, Any]:
+        """Return a defensive copy of raw manipulator data."""
+        return deepcopy(self.raw)
+
+
+@dataclass
 class Manipulator:
-    """Base manipulator for key mappings."""
+    """Builder for Karabiner basic manipulators."""
 
-    def __init__(self, from_key: str):
-        self.from_key = from_key
-        self.mandatory_modifiers: list[str] = []
-        self.optional_modifiers: list[str] = []
-        self.to_keys: list[str | dict[str, Any]] = []
-        self.to_if_alone: list[str | dict[str, Any]] = []
-        self.to_if_held_down: list[str | dict[str, Any]] = []
-        self.conditions: list[dict[str, Any]] = []
+    from_key: str
+    mandatory_modifiers: list[str] = field(default_factory=list)
+    optional_modifiers: list[str] = field(default_factory=list)
+    to_keys: list[dict[str, Any]] = field(default_factory=list)
+    to_if_alone: list[dict[str, Any]] = field(default_factory=list)
+    to_if_held_down: list[dict[str, Any]] = field(default_factory=list)
+    conditions: list[dict[str, Any]] = field(default_factory=list)
 
     def modifiers(
         self, mandatory: list[str] | None = None, optional: list[str] | None = None
@@ -38,6 +68,11 @@ class Manipulator:
             target["modifiers"] = modifiers
         target.update(extra)
         self.to_keys.append(target)
+        return self
+
+    def to_raw(self, action: Mapping[str, Any]) -> Manipulator:
+        """Append a low-level action dictionary to 'to'."""
+        self.to_keys.append(dict(action))
         return self
 
     def if_alone(
@@ -64,12 +99,13 @@ class Manipulator:
 
     def when_app(self, app_identifiers: str | list[str]) -> Manipulator:
         """Add app condition."""
-        if isinstance(app_identifiers, str):
-            app_identifiers = [app_identifiers]
+        apps = (
+            [app_identifiers] if isinstance(app_identifiers, str) else app_identifiers
+        )
         self.conditions.append(
             {
                 "type": "frontmost_application_if",
-                "bundle_identifiers": app_identifiers,
+                "bundle_identifiers": apps,
             }
         )
         return self
@@ -87,12 +123,13 @@ class Manipulator:
 
     def unless_app(self, app_identifiers: str | list[str]) -> Manipulator:
         """Exclude specific apps from this mapping."""
-        if isinstance(app_identifiers, str):
-            app_identifiers = [app_identifiers]
+        apps = (
+            [app_identifiers] if isinstance(app_identifiers, str) else app_identifiers
+        )
         self.conditions.append(
             {
                 "type": "frontmost_application_unless",
-                "bundle_identifiers": app_identifiers,
+                "bundle_identifiers": apps,
             }
         )
         return self
@@ -110,59 +147,65 @@ class Manipulator:
 
     def build(self) -> dict[str, Any]:
         """Build the manipulator dictionary."""
+        if not self.from_key:
+            raise ValueError("from_key cannot be empty")
+
         from_dict: dict[str, Any] = {"key_code": self.from_key}
         if self.mandatory_modifiers or self.optional_modifiers:
             from_dict["modifiers"] = {}
             if self.mandatory_modifiers:
-                from_dict["modifiers"]["mandatory"] = self.mandatory_modifiers
+                from_dict["modifiers"]["mandatory"] = list(self.mandatory_modifiers)
             if self.optional_modifiers:
-                from_dict["modifiers"]["optional"] = self.optional_modifiers
+                from_dict["modifiers"]["optional"] = list(self.optional_modifiers)
 
         manip: dict[str, Any] = {
             "type": "basic",
             "from": from_dict,
         }
         if self.to_keys:
-            manip["to"] = [
-                {"key_code": k} if isinstance(k, str) else k for k in self.to_keys
-            ]
+            manip["to"] = deepcopy(self.to_keys)
         if self.to_if_alone:
-            manip["to_if_alone"] = [
-                {"key_code": k} if isinstance(k, str) else k for k in self.to_if_alone
-            ]
+            manip["to_if_alone"] = deepcopy(self.to_if_alone)
         if self.to_if_held_down:
-            manip["to_if_held_down"] = [
-                {"key_code": k} if isinstance(k, str) else k
-                for k in self.to_if_held_down
-            ]
+            manip["to_if_held_down"] = deepcopy(self.to_if_held_down)
         if self.conditions:
-            manip["conditions"] = self.conditions
+            manip["conditions"] = deepcopy(self.conditions)
         return manip
 
 
+@dataclass
 class Rule:
     """A Karabiner rule containing manipulators."""
 
-    def __init__(self, description: str):
-        self.description = description
-        self.manipulators: list[Manipulator] = []
+    description: str
+    manipulators: list[Buildable] = field(default_factory=list)
 
-    def add(self, manipulator: Manipulator) -> Rule:
+    def add(self, manipulator: Buildable) -> Rule:
         """Add a manipulator to the rule."""
         self.manipulators.append(manipulator)
         return self
 
-    def extend(self, manipulators: list[Manipulator]) -> Rule:
+    def extend(self, manipulators: list[Buildable]) -> Rule:
         """Add multiple manipulators."""
         self.manipulators.extend(manipulators)
         return self
 
-    def add_dict(self, manip_dict: dict[str, Any]) -> Rule:
-        """Add a raw manipulator dictionary."""
-        m = Manipulator("placeholder")
-        m.build = lambda: manip_dict  # type: ignore[method-assign]
-        self.manipulators.append(m)
+    def add_raw(self, manip_dict: Mapping[str, Any]) -> Rule:
+        """Add a raw manipulator dictionary with validation."""
+        self.manipulators.append(RawManipulator(manip_dict))
         return self
+
+    def add_dict(self, manip_dict: dict[str, Any]) -> Rule:
+        """Compatibility shim for legacy API.
+
+        Deprecated in v0.2. Use add_raw() instead.
+        """
+        warnings.warn(
+            "Rule.add_dict() is deprecated; use Rule.add_raw() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.add_raw(manip_dict)
 
     def build(self) -> dict[str, Any]:
         """Build the rule dictionary."""
@@ -172,16 +215,18 @@ class Rule:
         }
 
 
+@dataclass
 class Profile:
     """A Karabiner profile."""
 
-    def __init__(self, name: str, selected: bool = True):
-        self.name = name
-        self.rules: list[Rule] = []
-        self.selected = selected
-        self.devices: list[dict[str, Any]] = []
-        self.parameters: dict[str, Any] = {}
-        self.virtual_hid_keyboard: dict[str, Any] = {"country_code": 0}
+    name: str
+    selected: bool = True
+    rules: list[Rule] = field(default_factory=list)
+    devices: list[dict[str, Any]] = field(default_factory=list)
+    parameters: dict[str, Any] = field(default_factory=dict)
+    virtual_hid_keyboard: dict[str, Any] = field(
+        default_factory=lambda: {"country_code": 0}
+    )
 
     def add_rule(self, rule: Rule) -> Profile:
         """Add a rule to the profile."""
@@ -195,14 +240,7 @@ class Profile:
         disable_built_in_keyboard_if_exists: bool = False,
         **extra: Any,
     ) -> Profile:
-        """Add a device-specific configuration.
-
-        Args:
-            vendor_id: Vendor ID of the device.
-            product_id: Product ID of the device.
-            disable_built_in_keyboard_if_exists: Whether to disable built-in keyboard.
-            **extra: Extra device-specific settings.
-        """
+        """Add a device-specific configuration."""
         device = {
             "identifiers": {
                 "vendor_id": vendor_id,
@@ -217,14 +255,7 @@ class Profile:
         return self
 
     def set_parameters(self, **parameters: Any) -> Profile:
-        """Set profile-level parameters.
-
-        Common parameters:
-            basic.simultaneous_threshold_milliseconds: int
-            basic.to_if_alone_timeout_milliseconds: int
-            basic.to_if_held_down_threshold_milliseconds: int
-            basic.to_delayed_action_delay_milliseconds: int
-        """
+        """Set profile-level parameters."""
         self.parameters.update(parameters)
         return self
 
@@ -241,26 +272,28 @@ class Profile:
             "complex_modifications": {
                 "rules": [r.build() for r in self.rules],
             },
-            "devices": self.devices,
-            "virtual_hid_keyboard": self.virtual_hid_keyboard,
+            "devices": deepcopy(self.devices),
+            "virtual_hid_keyboard": deepcopy(self.virtual_hid_keyboard),
         }
         if self.parameters:
-            profile["complex_modifications"]["parameters"] = self.parameters
+            profile["complex_modifications"]["parameters"] = deepcopy(self.parameters)
         return profile
 
 
+@dataclass
 class KarabinerConfig:
     """Top-level Karabiner configuration."""
 
     DEFAULT_PATH = Path.home() / ".config" / "karabiner" / "karabiner.json"
 
-    def __init__(self):
-        self.profiles: list[Profile] = []
-        self.global_settings: dict[str, Any] = {
+    profiles: list[Profile] = field(default_factory=list)
+    global_settings: dict[str, Any] = field(
+        default_factory=lambda: {
             "check_for_updates_on_startup": True,
             "show_in_menu_bar": True,
             "show_profile_name_in_menu_bar": False,
         }
+    )
 
     def add_profile(self, profile: Profile) -> KarabinerConfig:
         """Add a profile to the configuration."""
@@ -270,7 +303,7 @@ class KarabinerConfig:
     def build(self) -> dict[str, Any]:
         """Build the configuration dictionary."""
         return {
-            "global": self.global_settings,
+            "global": deepcopy(self.global_settings),
             "profiles": [p.build() for p in self.profiles],
         }
 
@@ -285,17 +318,15 @@ class KarabinerConfig:
         backup: bool = True,
         dry_run: bool = False,
     ) -> Path:
-        """Save configuration to file.
+        """Compatibility save helper returning path for v0.1 callers."""
+        from karabinerpyx.deploy import save_config_path
 
-        Args:
-            path: Target path. Defaults to ~/.config/karabiner/karabiner.json
-            apply: If True, reload Karabiner after saving.
-            backup: If True, backup existing config before overwriting.
-            dry_run: If True, show diff and don't write to file.
-
-        Returns:
-            The path where the config was saved (or would be saved).
-        """
-        from karabinerpyx.deploy import save_config
-
-        return save_config(self, path, apply=apply, backup=backup, dry_run=dry_run)
+        warnings.warn(
+            (
+                "KarabinerConfig.save() returning Path is deprecated; "
+                "use deploy.save_config()"
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return save_config_path(self, path, apply=apply, backup=backup, dry_run=dry_run)

@@ -1,13 +1,14 @@
 """Tests for layer system."""
 
+from __future__ import annotations
+
+import pytest
+
 from karabinerpyx import LayerStackBuilder, SimultaneousManipulator
 
 
 class TestLayerStackBuilder:
-    """Tests for LayerStackBuilder class."""
-
     def test_single_trigger_activation(self):
-        """Test single trigger key layer activation."""
         layer = LayerStackBuilder("hyper", "right_command")
         rules = layer.build_rules()
 
@@ -21,7 +22,6 @@ class TestLayerStackBuilder:
         assert manip["to_after_key_up"][0]["set_variable"]["value"] == 0
 
     def test_stacked_trigger_activation(self):
-        """Test multiple trigger keys layer activation."""
         layer = LayerStackBuilder("hyper_alt", ["right_command", "right_option"])
         rules = layer.build_rules()
 
@@ -33,13 +33,11 @@ class TestLayerStackBuilder:
         assert len(manip["from"]["simultaneous"]) == 2
 
     def test_simple_mapping(self):
-        """Test simple key mapping within layer."""
         layer = LayerStackBuilder("hyper", "right_command").map("j", "left_arrow")
         rules = layer.build_rules()
 
-        # Second rule should be the mapping
         mapping_rule = rules[1].build()
-        assert "j → left_arrow" in mapping_rule["description"]
+        assert "j -> left_arrow" in mapping_rule["description"]
 
         manip = mapping_rule["manipulators"][0]
         assert manip["from"]["key_code"] == "j"
@@ -47,7 +45,6 @@ class TestLayerStackBuilder:
         assert manip["conditions"][0]["name"] == "hyper"
 
     def test_dict_mapping(self):
-        """Test mapping to raw dict action."""
         layer = LayerStackBuilder("hyper", "right_command").map(
             "j", {"key_code": "left_arrow", "repeat": False}
         )
@@ -60,7 +57,6 @@ class TestLayerStackBuilder:
         assert manip["to"][0]["repeat"] is False
 
     def test_multiple_mappings(self):
-        """Test multiple mappings."""
         layer = (
             LayerStackBuilder("hyper", "right_command")
             .map("j", "left_arrow")
@@ -68,12 +64,9 @@ class TestLayerStackBuilder:
             .map("l", "right_arrow")
         )
         rules = layer.build_rules()
-
-        # 1 activation + 3 mappings
         assert len(rules) == 4
 
     def test_macro_mapping(self):
-        """Test macro mapping."""
         layer = LayerStackBuilder("hyper", "right_command").map_macro(
             "t", template_type="typed_text", text="Hello!"
         )
@@ -87,7 +80,6 @@ class TestLayerStackBuilder:
         assert "Hello!" in manip["to"][0]["shell_command"]
 
     def test_combo_mapping(self):
-        """Test combo (simultaneous) mapping."""
         layer = LayerStackBuilder("hyper", "right_command").map_combo(
             ["j", "k"], "escape"
         )
@@ -100,22 +92,18 @@ class TestLayerStackBuilder:
         assert "simultaneous" in manip["from"]
 
     def test_sequence_mapping(self):
-        """Test sequence mapping."""
         layer = LayerStackBuilder("hyper", "right_command").map_sequence(
             ["g", "g"], "home"
         )
         rules = layer.build_rules()
 
-        # Activation + 2 sequence steps
         assert len(rules) == 3
 
-        # Check sequence uses delayed_action
         seq_rule = rules[1].build()
         manip = seq_rule["manipulators"][0]
         assert "to_delayed_action" in manip
 
     def test_sequence_timeout(self):
-        """Test sequence timeout configuration."""
         layer = (
             LayerStackBuilder("hyper", "right_command")
             .set_sequence_timeout(300)
@@ -128,7 +116,6 @@ class TestLayerStackBuilder:
         assert manip["parameters"]["basic.to_delayed_action_delay_milliseconds"] == 300
 
     def test_app_condition(self):
-        """Test app condition on layer."""
         layer = (
             LayerStackBuilder("hyper", "right_command")
             .when_app("com.apple.Terminal")
@@ -139,7 +126,6 @@ class TestLayerStackBuilder:
         macro_rule = rules[1].build()
         manip = macro_rule["manipulators"][0]
 
-        # Should have both variable and app conditions
         assert len(manip["conditions"]) == 2
         app_cond = next(
             c for c in manip["conditions"] if c["type"] == "frontmost_application_if"
@@ -147,7 +133,6 @@ class TestLayerStackBuilder:
         assert app_cond["bundle_identifiers"] == ["com.apple.Terminal"]
 
     def test_fluent_api(self):
-        """Test fluent API chaining."""
         layer = (
             LayerStackBuilder("hyper", "right_command")
             .map("j", "left_arrow")
@@ -158,21 +143,32 @@ class TestLayerStackBuilder:
             .map_sequence(["g", "g"], "home")
         )
         rules = layer.build_rules()
-
-        # 1 activation + 2 mappings + 1 combo + 1 macro + 2 sequence steps
         assert len(rules) == 7
+
+    def test_reject_empty_trigger(self):
+        with pytest.raises(ValueError):
+            LayerStackBuilder("bad", [])
+
+    def test_reject_short_sequence(self):
+        with pytest.raises(ValueError):
+            LayerStackBuilder("bad", "caps_lock").map_sequence(["g"], "home")
+
+    def test_reject_short_combo(self):
+        with pytest.raises(ValueError):
+            LayerStackBuilder("bad", "caps_lock").map_combo(["j"], "escape")
 
 
 class TestSimultaneousManipulator:
-    """Tests for SimultaneousManipulator class."""
-
     def test_build(self):
-        """Test simultaneous manipulator building."""
-        m = SimultaneousManipulator(["j", "k"], "escape", "hyper")
-        result = m.build()
+        manipulator = SimultaneousManipulator(["j", "k"], "escape", "hyper")
+        result = manipulator.build()
 
         assert result["type"] == "basic"
         assert "simultaneous" in result["from"]
         assert len(result["from"]["simultaneous"]) == 2
         assert result["to"][0]["key_code"] == "escape"
         assert result["conditions"][0]["name"] == "hyper"
+
+    def test_reject_short_combo(self):
+        with pytest.raises(ValueError):
+            SimultaneousManipulator(["j"], "escape", "hyper")
