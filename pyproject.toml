@@ -1,7 +1,7 @@
 [project]
 name = "karabinerpyx"
-version = "0.1.0"
-description = "A Python DSL for Declarative, Safe, and Powerful Karabiner-Elements Configuration"
+version = "0.2.0"
+description = "A Python DSL for declarative, safe, and powerful Karabiner-Elements configuration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -18,12 +18,10 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: System :: Hardware :: Symmetric Multi-processing",
+    "Topic :: Utilities",
 ]
 
-dependencies = [
-    "watchdog>=3.0.0",
-]
+dependencies = []
 
 [project.scripts]
 kpyx = "karabinerpyx.cli:main"
@@ -32,6 +30,7 @@ kpyx = "karabinerpyx.cli:main"
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "mypy>=1.11.0",
 ]
 watch = [
     "watchfiles>=0.22.0",
@@ -49,3 +48,35 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 14
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/karabinerpyx"]
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["karabinerpyx.docs", "karabinerpyx.analytics"]
+disallow_untyped_defs = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = ["watchfiles", "watchfiles.*"]
+ignore_missing_imports = true

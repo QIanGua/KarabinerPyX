@@ -33,19 +33,23 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
 
+      - name: Type check with mypy
+        run: |
+          uv run mypy src/karabinerpyx
+
       - name: Run tests with coverage
         run: |
-            uv run pytest --cov=src/karabinerpyx --cov-report=xml
+          uv run pytest --cov=src/karabinerpyx --cov-report=xml
 
       - name: Verify Documentation is Up-to-date
         run: |
-            just docs
-            if [ -n "$(git status --porcelain *.md)" ]; then
-              echo "❌ Documentation is out of date. Please run 'just docs' locally and commit the changes."
-              git status --porcelain *.md
-              exit 1
-            fi
-            echo "✅ Documentation is up to date."
+          just docs
+          if [ -n "$(git status --porcelain *.md)" ]; then
+            echo "Documentation is out of date. Please run 'just docs' locally and commit the changes."
+            git status --porcelain *.md
+            exit 1
+          fi
+          echo "Documentation is up to date."
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
