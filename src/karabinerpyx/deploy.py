@@ -1,4 +1,4 @@
-"""Deployment utilities for Karabiner configuration."""
+"""Runtime deployment utilities for Karabiner configuration."""
 
 from __future__ import annotations
 
@@ -7,6 +7,9 @@ import json
 import os
 import shutil
 import subprocess
+import sys
+import tempfile
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -14,20 +17,24 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from karabinerpyx.models import KarabinerConfig
 
-# Default Karabiner config path
-DEFAULT_CONFIG_PATH = Path.home() / ".config" / "karabiner" / "karabiner.json"
 
-# Backup settings
+DEFAULT_CONFIG_PATH = Path.home() / ".config" / "karabiner" / "karabiner.json"
 MAX_BACKUPS = 10
 
 
-def migrate_legacy_backups(config_path: Path, backup_dir: Path) -> None:
-    """Migrate legacy backups from the config directory to the backup directory.
+@dataclass(frozen=True)
+class SaveResult:
+    """Result for a save operation."""
 
-    Args:
-        config_path: Path to the config file.
-        backup_dir: Path to the backup directory.
-    """
+    path: Path
+    backup_path: Path | None
+    reload_status: bool | None
+    diff_changed: bool
+    dry_run: bool
+
+
+def migrate_legacy_backups(config_path: Path, backup_dir: Path) -> None:
+    """Migrate legacy backups from the config directory to the backup directory."""
     for legacy_backup in config_path.parent.glob("karabiner_backup_*.json"):
         if legacy_backup.is_file():
             target = backup_dir / legacy_backup.name
@@ -38,63 +45,38 @@ def migrate_legacy_backups(config_path: Path, backup_dir: Path) -> None:
 
 
 def cleanup_backups(backup_dir: Path, keep: int = MAX_BACKUPS) -> None:
-    """Keep only the most recent backups.
-
-    Args:
-        backup_dir: Path to the backup directory.
-        keep: Number of backups to keep.
-    """
+    """Keep only the most recent backups."""
     backups = sorted(
         backup_dir.glob("karabiner_backup_*.json"),
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
-
     for old_backup in backups[keep:]:
         old_backup.unlink()
 
 
 def backup_config(path: Path | None = None) -> Path | None:
-    """Backup the existing Karabiner configuration.
-
-    Args:
-        path: Path to the config file. Defaults to the standard location.
-
-    Returns:
-        Path to the backup file, or None if no backup was needed.
-    """
-    if path is None:
-        path = DEFAULT_CONFIG_PATH
-
-    if not path.exists():
+    """Backup the existing Karabiner configuration."""
+    resolved_path = path or DEFAULT_CONFIG_PATH
+    if not resolved_path.exists():
         return None
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = path.parent / "automatic_backups"
+    backup_dir = resolved_path.parent / "automatic_backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    # Migrate legacy backups
-    migrate_legacy_backups(path, backup_dir)
+    migrate_legacy_backups(resolved_path, backup_dir)
 
     backup_path = backup_dir / f"karabiner_backup_{timestamp}.json"
-    shutil.copy2(path, backup_path)
+    shutil.copy2(resolved_path, backup_path)
     cleanup_backups(backup_dir)
     return backup_path
 
 
 def list_backups(path: Path | None = None) -> list[Path]:
-    """List available backups for the Karabiner configuration.
-
-    Args:
-        path: Path to the config file. Defaults to the standard location.
-
-    Returns:
-        A list of backup file paths, sorted newest first.
-    """
-    if path is None:
-        path = DEFAULT_CONFIG_PATH
-
-    backup_dir = path.parent / "automatic_backups"
+    """List available backups for the Karabiner configuration."""
+    resolved_path = path or DEFAULT_CONFIG_PATH
+    backup_dir = resolved_path.parent / "automatic_backups"
     if not backup_dir.exists():
         return []
 
@@ -106,75 +88,49 @@ def list_backups(path: Path | None = None) -> list[Path]:
 
 
 def restore_config(backup_path: Path, target_path: Path | None = None) -> bool:
-    """Restore a Karabiner configuration from a backup.
-
-    Args:
-        backup_path: Path to the backup file to restore.
-        target_path: Path to the config file. Defaults to the standard location.
-
-    Returns:
-        True if successful, False otherwise.
-    """
-    if target_path is None:
-        target_path = DEFAULT_CONFIG_PATH
-
+    """Restore a Karabiner configuration from a backup."""
+    resolved_target = target_path or DEFAULT_CONFIG_PATH
     if not backup_path.exists():
         return False
 
     try:
-        shutil.copy2(backup_path, target_path)
-        return True
-    except Exception as e:
-        print(f"❌ Error restoring backup: {e}")
+        resolved_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_path, resolved_target)
+    except OSError as exc:
+        print(f"Error restoring backup: {exc}")
         return False
+    return True
 
 
 def validate_json(json_str: str) -> bool:
-    """Validate a JSON string.
-
-    Args:
-        json_str: The JSON string to validate.
-
-    Returns:
-        True if valid, False otherwise.
-    """
+    """Validate a JSON string."""
     try:
         json.loads(json_str)
-        return True
     except json.JSONDecodeError:
         return False
+    return True
 
 
 def validate_config(config_dict: dict[str, Any]) -> list[str]:
-    """Validate a Karabiner configuration dictionary.
-
-    Args:
-        config_dict: The configuration dictionary to validate.
-
-    Returns:
-        List of validation errors (empty if valid).
-    """
+    """Validate a Karabiner configuration dictionary."""
     errors: list[str] = []
 
     if "global" not in config_dict:
         errors.append("Missing 'global' key")
 
-    if "profiles" not in config_dict:
+    profiles = config_dict.get("profiles")
+    if profiles is None:
         errors.append("Missing 'profiles' key")
-    elif not isinstance(config_dict["profiles"], list):
+    elif not isinstance(profiles, list):
         errors.append("'profiles' must be a list")
-    elif len(config_dict["profiles"]) == 0:
+    elif not profiles:
         errors.append("At least one profile is required")
 
     return errors
 
 
 def reload_karabiner() -> bool:
-    """Reload Karabiner-Elements configuration.
-
-    Returns:
-        True if successful, False otherwise.
-    """
+    """Reload Karabiner-Elements configuration."""
     try:
         uid = os.getuid()
         subprocess.run(
@@ -190,15 +146,14 @@ def reload_karabiner() -> bool:
         )
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        # Try alternative method
         try:
-            uid = subprocess.check_output(["id", "-u"]).decode().strip()
+            uid_text = subprocess.check_output(["id", "-u"], text=True).strip()
             subprocess.run(
                 [
                     "launchctl",
                     "kickstart",
                     "-k",
-                    f"gui/{uid}/org.pqrs.karabiner.karabiner_console_user_server",
+                    f"gui/{uid_text}/org.pqrs.karabiner.karabiner_console_user_server",
                 ],
                 shell=False,
                 check=True,
@@ -209,15 +164,8 @@ def reload_karabiner() -> bool:
             return False
 
 
-def show_diff(old_json: str, new_json: str, path: Path) -> None:
-    """Show the difference between old and new configuration.
-
-    Args:
-        old_json: The existing configuration JSON string.
-        new_json: The new configuration JSON string.
-        path: The path to the configuration file.
-    """
-    diff = list(
+def _diff_lines(old_json: str, new_json: str, path: Path) -> list[str]:
+    return list(
         difflib.unified_diff(
             old_json.splitlines(keepends=True),
             new_json.splitlines(keepends=True),
@@ -226,20 +174,67 @@ def show_diff(old_json: str, new_json: str, path: Path) -> None:
         )
     )
 
-    if not diff:
-        print("✨ No changes detected.")
-        return
 
-    print(f"🔍 Changes for {path}:")
+def _should_colorize(color: bool | None) -> bool:
+    if color is not None:
+        return color
+    return sys.stdout.isatty() and "NO_COLOR" not in os.environ
+
+
+def _colorize_diff_line(line: str, enabled: bool) -> str:
+    if not enabled:
+        return line
+    if line.startswith("+") and not line.startswith("+++"):
+        return f"\033[32m{line}\033[0m"
+    if line.startswith("-") and not line.startswith("---"):
+        return f"\033[31m{line}\033[0m"
+    return line
+
+
+def show_diff(
+    old_json: str, new_json: str, path: Path, color: bool | None = None
+) -> bool:
+    """Print a unified diff and return whether there are changes."""
+    diff = _diff_lines(old_json, new_json, path)
+    if not diff:
+        print("No changes detected.")
+        return False
+
+    use_color = _should_colorize(color)
+    print(f"Changes for {path}:")
     for line in diff:
-        if line.startswith("+") and not line.startswith("+++"):
-            print(f"\033[32m{line.rstrip()}\033[0m")  # Green
-        elif line.startswith("-") and not line.startswith("---"):
-            print(f"\033[31m{line.rstrip()}\033[0m")  # Red
-        elif line.startswith("^"):
-            print(f"\033[36m{line.rstrip()}\033[0m")  # Cyan
-        else:
-            print(line.rstrip())
+        print(_colorize_diff_line(line.rstrip("\n"), use_color))
+    return True
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+            tmp_path = Path(handle.name)
+        tmp_path.replace(path)
+    finally:
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+
+def _resolve_path(path: Path | str | None) -> Path:
+    if path is None:
+        return DEFAULT_CONFIG_PATH
+    if isinstance(path, str):
+        return Path(path)
+    return path
 
 
 def save_config(
@@ -248,31 +243,11 @@ def save_config(
     apply: bool = False,
     backup: bool = True,
     dry_run: bool = False,
-) -> Path:
-    """Save a Karabiner configuration to file.
-
-    Args:
-        config: The KarabinerConfig to save.
-        path: Target path. Defaults to ~/.config/karabiner/karabiner.json
-        apply: If True, reload Karabiner after saving.
-        backup: If True, backup existing config before overwriting.
-        dry_run: If True, show diff and don't write to file.
-
-    Returns:
-        The path where the config was saved (or would be saved).
-
-    Raises:
-        ValueError: If the generated JSON is invalid.
-    """
-    if path is None:
-        path = DEFAULT_CONFIG_PATH
-    elif isinstance(path, str):
-        path = Path(path)
-
-    # Build config
+) -> SaveResult:
+    """Save a Karabiner configuration and return structured result."""
+    resolved_path = _resolve_path(path)
     config_dict = config.build()
 
-    # Validate
     errors = validate_config(config_dict)
     if errors:
         raise ValueError(f"Invalid configuration: {', '.join(errors)}")
@@ -281,38 +256,57 @@ def save_config(
     if not validate_json(json_str):
         raise ValueError("Generated JSON is invalid")
 
-    # Show diff if file exists
-    if path.exists():
-        old_json = path.read_text()
-        if dry_run:
-            show_diff(old_json, json_str, path)
-            return path
-        # In non-dry-run mode, we still might want to show diff if it's small?
-        # For now, let's just focus on dry_run as requested.
+    backup_path: Path | None = None
+    old_json = ""
+    has_existing = resolved_path.exists()
+    if has_existing:
+        old_json = resolved_path.read_text(encoding="utf-8")
+
+    diff_changed = (not has_existing) or (old_json != json_str)
 
     if dry_run:
-        print(f"✨ New file would be created at {path}")
-        print(json_str)
-        return path
-
-    # Backup existing config
-    if backup and path.exists():
-        backup_path = backup_config(path)
-        if backup_path:
-            print(f"📦 Backed up to {backup_path}")
-
-    # Ensure directory exists
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Write config
-    path.write_text(json_str)
-    print(f"✅ Karabiner config written to {path}")
-
-    # Reload if requested
-    if apply:
-        if reload_karabiner():
-            print("🔄 Karabiner configuration reloaded")
+        if has_existing:
+            show_diff(old_json, json_str, resolved_path, color=False)
         else:
-            print("⚠️ Failed to reload Karabiner (try manually)")
+            print(f"New file would be created at {resolved_path}")
+            print(json_str)
+        return SaveResult(
+            path=resolved_path,
+            backup_path=None,
+            reload_status=None,
+            diff_changed=diff_changed,
+            dry_run=True,
+        )
 
-    return path
+    if backup and has_existing:
+        backup_path = backup_config(resolved_path)
+
+    try:
+        _atomic_write(resolved_path, json_str)
+    except OSError as exc:
+        if backup_path and backup_path.exists():
+            shutil.copy2(backup_path, resolved_path)
+        raise RuntimeError(f"Failed to write config atomically: {exc}") from exc
+
+    reload_status: bool | None = None
+    if apply:
+        reload_status = reload_karabiner()
+
+    return SaveResult(
+        path=resolved_path,
+        backup_path=backup_path,
+        reload_status=reload_status,
+        diff_changed=diff_changed,
+        dry_run=False,
+    )
+
+
+def save_config_path(
+    config: KarabinerConfig,
+    path: Path | str | None = None,
+    apply: bool = False,
+    backup: bool = True,
+    dry_run: bool = False,
+) -> Path:
+    """Compatibility wrapper that returns only path."""
+    return save_config(config, path, apply=apply, backup=backup, dry_run=dry_run).path

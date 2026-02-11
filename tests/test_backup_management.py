@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import time
 from pathlib import Path
-import tempfile
+
 from karabinerpyx.deploy import (
     MAX_BACKUPS,
     backup_config,
     cleanup_backups,
-    migrate_legacy_backups,
     list_backups,
+    migrate_legacy_backups,
     restore_config,
 )
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
-from karabinerpyx import KarabinerConfig, Profile, Rule, Manipulator
-from karabinerpyx.docs import generate_markdown, generate_html, save_cheat_sheet
+from pathlib import Path
+
+from karabinerpyx import KarabinerConfig, Manipulator, Profile, Rule
+from karabinerpyx.docs import generate_html, generate_markdown, save_cheat_sheet
 
 
 def test_generate_markdown():
@@ -45,6 +46,7 @@ def test_generate_html():
     assert "<h2>Profile: Test Profile (Selected)</h2>" in html
     assert "<h3>Navigation</h3>" in html
     assert "<code>h</code>" in html
+
 
 def test_generate_markdown_combo():
     config = KarabinerConfig()

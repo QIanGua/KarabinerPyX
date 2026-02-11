@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SERVICE_LABEL = "com.kpyx.watch"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_LABEL}.plist"
 LOG_PATH = Path.home() / "Library" / "Logs" / "kpyx-watch.log"
