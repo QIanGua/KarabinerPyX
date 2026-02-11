@@ -259,6 +259,7 @@ KarabinerPyX 包含一个功能强大的命令行工具，用于管理你的配�
 - `kpyx apply <script.py>`：直接应用配置到 Karabiner（包含自动备份和清理）。
 - `kpyx restore`：从备份文件夹中交互式选择并恢复之前的配置。
 - `kpyx docs <script.py> -o CHEAT_SHEET.md`：自动生成 Markdown 格式的说明文档。
+- `kpyx stats <script.py> --json`：输出机器可读的静态分析报告。
 
 ### 8.1 Watch & Service
 
@@ -377,3 +378,11 @@ KarabinerPyX 的长期目标是成为：
 ---
 
 **KarabinerPyX — Design your keyboard like you design software.**
+
+---
+
+## 迁移说明
+
+v0.2 引入了破坏性升级，详见：
+
+- [MIGRATION.md](MIGRATION.md)

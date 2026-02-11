@@ -259,6 +259,7 @@ KarabinerPyX includes a CLI for managing configs:
 - `kpyx apply <script.py>`: apply config (with backup and cleanup).
 - `kpyx restore`: interactive restore from backups.
 - `kpyx docs <script.py> -o CHEAT_SHEET.md`: generate Markdown docs.
+- `kpyx stats <script.py> --json`: output machine-readable static analysis report.
 
 ### 8.1 Watch & Service
 
@@ -377,3 +378,11 @@ as a **keyboard operating system DSL**.
 ---
 
 **KarabinerPyX — Design your keyboard like you design software.**
+
+---
+
+## Migration
+
+For breaking changes introduced in v0.2, see:
+
+- [MIGRATION.md](MIGRATION.md)

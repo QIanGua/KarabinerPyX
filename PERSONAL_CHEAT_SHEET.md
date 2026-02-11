@@ -1,8 +1,8 @@
-# ⌨️ KarabinerPyX Mapping Cheat Sheet
+# KarabinerPyX Mapping Cheat Sheet
 
-## 👤 Profile: Personalized Profile from KarabinerPyX (Selected)
+## Profile: Personalized Profile from KarabinerPyX (Selected)
 
-### 📜 1. Option + HJKL 导航映射
+### 1. Option + HJKL navigation
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
@@ -11,38 +11,38 @@
 | `k` | → `up_arrow` | - |
 | `l` | → `right_arrow` | - |
 
-### 📜 2. Ctrl + F/B 左右导航
+### 2. Ctrl + F/B navigation
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
 | `f` | → `right_arrow` | - |
 | `b` | → `left_arrow` | - |
 
-### 📜 3. Ctrl + W 删除单词
+### 3. Ctrl + W delete previous word
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
 | `w` | → `delete_or_backspace` | - |
 
-### 📜 4. CapsLock 增强 (Escape/Control)
+### 4. CapsLock as Escape/Control
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
 | `caps_lock` | → `left_control`<br>Alone: `escape` | - |
 
-### 📜 5. 右 Command 单击映射 (Cmd+Tab)
+### 5. Right Command tap to Cmd+Tab
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
 | `right_command` | → `right_command`<br>Alone: `tab` | - |
 
-### 📜 6. 左 Command 单击映射 (Cmd+Space)
+### 6. Left Command tap to Cmd+Space
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
 | `left_command` | → `left_command`<br>Alone: `spacebar` | - |
 
-### 📜 7. 交换分号和冒号
+### 7. Swap semicolon and colon
 
 | From | To | Conditions |
 | :--- | :--- | :--- |
