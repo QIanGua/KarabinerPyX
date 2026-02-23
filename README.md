@@ -249,6 +249,27 @@ No GUI needed.
 
 ---
 
+### 7.4 Intent DSL (Recommended)
+
+KarabinerPyX now provides an intent-first DSL that compiles to the existing
+typed model layer.
+
+```python
+from karabinerpyx import IntentConfig
+
+config = IntentConfig()
+profile = config.profile("Intent Demo")
+
+profile.dual_role("caps_lock", tap="escape", hold="left_control")
+nav = profile.layer("nav", "right_command", tap="right_command")
+nav.map("h", "left_arrow").map("j", "down_arrow")
+nav.combo(["j", "k"], "escape")
+nav.sequence(["g", "g"], "home", timeout_ms=300)
+nav.macro("t", "typed_text", text="Hello from Intent DSL")
+```
+
+---
+
 ## 8. CLI Tool (kpyx)
 
 KarabinerPyX includes a CLI for managing configs:
@@ -260,6 +281,10 @@ KarabinerPyX includes a CLI for managing configs:
 - `kpyx restore`: interactive restore from backups.
 - `kpyx docs <script.py> -o CHEAT_SHEET.md`: generate Markdown docs.
 - `kpyx stats <script.py> --json`: output machine-readable static analysis report.
+- `kpyx lint <script.py>`: run semantic lint checks (duplicate/shadowed mappings, template errors).
+
+All CLI commands that load user scripts support both `KarabinerConfig` and
+`IntentConfig`.
 
 ### 8.1 Watch & Service
 
@@ -330,6 +355,12 @@ for rule in hyper.build_rules():
 
 KarabinerConfig().add_profile(profile).save(apply=True)
 ```
+
+Intent DSL examples:
+
+- `examples/intent_quickstart.py`
+- `examples/intent_advanced.py`
+- `examples/intent_migration_golden.py`
 
 ---
 

@@ -62,3 +62,32 @@ path = result.path
 ## Transition window
 
 Deprecated compatibility shims are retained for one release cycle after v0.2.
+
+## Intent DSL migration (compatible)
+
+KarabinerPyX now supports a new intent-first DSL without removing the legacy
+builder API.
+
+### Old (builder API)
+
+```python
+from karabinerpyx import KarabinerConfig, LayerStackBuilder, Profile
+
+nav = LayerStackBuilder("nav", "right_command").map("h", "left_arrow")
+profile = Profile("Demo")
+for rule in nav.build_rules():
+    profile.add_rule(rule)
+config = KarabinerConfig().add_profile(profile)
+```
+
+### New (intent DSL)
+
+```python
+from karabinerpyx import IntentConfig
+
+config = IntentConfig()
+config.profile("Demo").layer("nav", "right_command").map("h", "left_arrow")
+```
+
+Both forms are accepted by CLI commands (`kpyx build`, `kpyx apply`, `kpyx docs`,
+`kpyx stats`, and `kpyx lint`).

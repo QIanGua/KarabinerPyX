@@ -10,6 +10,7 @@ import pytest
 
 from karabinerpyx.cli import main, resolve_script_path, run_watch
 from karabinerpyx.cli_types import CliError
+from karabinerpyx.models import KarabinerConfig, Profile
 
 
 def test_cli_list(capsys):
@@ -136,7 +137,7 @@ def test_run_watch_executes_on_changes(monkeypatch, tmp_path):
     calls: list[str] = []
 
     def fake_load(path: str):
-        return object()
+        return KarabinerConfig().add_profile(Profile("Watch"))
 
     def fake_save(config, apply: bool, dry_run: bool, backup: bool):
         calls.append("save")
@@ -151,6 +152,26 @@ def test_run_watch_executes_on_changes(monkeypatch, tmp_path):
 
     run_watch(script_path, apply=True, dry_run=False, debounce_ms=100)
     assert len(calls) == 2
+
+
+def test_cli_lint_json(capsys):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_path = Path(tmpdir) / "config.py"
+        config_path.write_text(
+            """
+from karabinerpyx import KarabinerConfig, Manipulator, Profile, Rule
+profile = Profile("Lint")
+profile.add_rule(Rule("one").add(Manipulator("a").to("b")))
+profile.add_rule(Rule("two").add(Manipulator("a").to("c")))
+config = KarabinerConfig().add_profile(profile)
+"""
+        )
+
+        exit_code = main(["lint", str(config_path), "--json"])
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        issues = json.loads(captured.out)
+        assert any(issue["code"] == "duplicate_mapping" for issue in issues)
 
 
 def test_service_commands(monkeypatch, tmp_path):

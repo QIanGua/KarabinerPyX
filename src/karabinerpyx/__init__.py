@@ -8,6 +8,7 @@ from karabinerpyx.deploy import (
     save_config_path,
     validate_json,
 )
+from karabinerpyx.intent import IntentConfig
 from karabinerpyx.keys import (
     ALT,
     BS,
@@ -61,6 +62,7 @@ __all__ = [
     "Rule",
     "LayerStackBuilder",
     "SimultaneousManipulator",
+    "IntentConfig",
     "MACRO_TEMPLATES",
     "make_shell_command",
     "SaveResult",

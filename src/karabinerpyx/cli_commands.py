@@ -11,6 +11,7 @@ from types import ModuleType
 
 from karabinerpyx.analytics import compute_static_coverage, format_coverage_report
 from karabinerpyx.cli_types import CliError
+from karabinerpyx.compiler import compile_intent
 from karabinerpyx.deploy import (
     DEFAULT_CONFIG_PATH,
     list_backups,
@@ -19,16 +20,20 @@ from karabinerpyx.deploy import (
     save_config,
 )
 from karabinerpyx.docs import save_cheat_sheet, save_cheat_sheet_html
+from karabinerpyx.intent import IntentConfig
 from karabinerpyx.models import KarabinerConfig
 from karabinerpyx.service import (
     install_watch_service,
     service_status,
     uninstall_watch_service,
 )
+from karabinerpyx.validate import LintIssue, lint_intent, lint_karabiner_config
+
+ConfigObject = KarabinerConfig | IntentConfig
 
 
-def load_config_from_script(script_path: str) -> KarabinerConfig:
-    """Load KarabinerConfig from a Python script."""
+def load_config_from_script(script_path: str) -> ConfigObject:
+    """Load KarabinerConfig or IntentConfig from a Python script."""
     path = Path(script_path).expanduser().resolve()
     if not path.exists():
         raise CliError(f"Error: Script not found: {script_path}")
@@ -36,24 +41,33 @@ def load_config_from_script(script_path: str) -> KarabinerConfig:
     module = _load_module(path)
 
     config = getattr(module, "config", None)
-    if isinstance(config, KarabinerConfig):
+    if isinstance(config, (KarabinerConfig, IntentConfig)):
         return config
 
     get_config = getattr(module, "get_config", None)
     if callable(get_config):
         result = get_config()
-        if isinstance(result, KarabinerConfig):
+        if isinstance(result, (KarabinerConfig, IntentConfig)):
             return result
 
     for attr_name in dir(module):
         attr = getattr(module, attr_name)
-        if isinstance(attr, KarabinerConfig):
+        if isinstance(attr, (KarabinerConfig, IntentConfig)):
             return attr
 
     raise CliError(
-        f"Error: No KarabinerConfig found in {script_path}\n"
+        f"Error: No KarabinerConfig or IntentConfig found in {script_path}\n"
         "Please define a 'config' variable or a 'get_config()' function."
     )
+
+
+def _ensure_karabiner_config(config: ConfigObject) -> KarabinerConfig:
+    if isinstance(config, KarabinerConfig):
+        return config
+    try:
+        return compile_intent(config)
+    except ValueError as exc:
+        raise CliError(f"Error compiling intent config: {exc}") from exc
 
 
 def _load_module(path: Path) -> ModuleType:
@@ -126,12 +140,13 @@ def run_watch(
 
     def execute_once() -> None:
         try:
-            config = load_config_from_script(str(script_path))
+            loaded = load_config_from_script(str(script_path))
+            config = _ensure_karabiner_config(loaded)
             result = save_config(config, apply=apply, dry_run=dry_run, backup=backup)
             stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             mode = "Dry-run completed" if result.dry_run else "Applied"
             print(f"{mode} at {stamp}")
-        except CliError as exc:
+        except (CliError, ValueError) as exc:
             print(exc)
 
     execute_once()
@@ -179,6 +194,10 @@ def build_parser() -> argparse.ArgumentParser:
     stats_parser = subparsers.add_parser("stats", help="Show static coverage report")
     stats_parser.add_argument("script", nargs="?", help="Path to config script")
     stats_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    lint_parser = subparsers.add_parser("lint", help="Lint config semantics")
+    lint_parser.add_argument("script", nargs="?", help="Path to config script")
+    lint_parser.add_argument("--json", action="store_true", dest="as_json")
 
     restore_parser = subparsers.add_parser("restore", help="Restore from backup")
     restore_parser.add_argument("--index", type=int)
@@ -242,7 +261,11 @@ def _dispatch(args: argparse.Namespace) -> int:
     if source != "argument":
         print(f"Using script path from {source}: {script_path}")
 
-    config = load_config_from_script(str(script_path))
+    loaded_config = load_config_from_script(str(script_path))
+    if args.command == "lint":
+        return _cmd_lint(loaded_config, as_json=bool(args.as_json))
+
+    config = _ensure_karabiner_config(loaded_config)
     return _dispatch_with_config(args, script_path, config)
 
 
@@ -295,6 +318,38 @@ def _dispatch_with_config(
         return 0
 
     raise CliError(f"Unknown command: {args.command}", exit_code=2)
+
+
+def _cmd_lint(config: ConfigObject, as_json: bool = False) -> int:
+    if isinstance(config, IntentConfig):
+        issues = lint_intent(config)
+    else:
+        issues = lint_karabiner_config(config)
+
+    if as_json:
+        print(
+            json.dumps(
+                [issue.to_dict() for issue in issues],
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+    else:
+        _print_lint_issues(issues)
+
+    has_error = any(issue.severity == "error" for issue in issues)
+    return 1 if has_error else 0
+
+
+def _print_lint_issues(issues: list[LintIssue]) -> None:
+    if not issues:
+        print("No lint issues found.")
+        return
+
+    for issue in issues:
+        location_parts = [part for part in (issue.profile, issue.rule) if part]
+        location = f" ({' / '.join(location_parts)})" if location_parts else ""
+        print(f"[{issue.severity}] {issue.code}{location}: {issue.message}")
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

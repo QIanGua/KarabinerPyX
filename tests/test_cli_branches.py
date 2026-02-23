@@ -13,6 +13,7 @@ from karabinerpyx.cli_commands import (
     parse_debounce_ms,
     run_watch,
 )
+from karabinerpyx.intent import IntentConfig
 
 
 def _write_script(path: Path, body: str) -> None:
@@ -43,6 +44,21 @@ def get_config():
     )
     config = load_config_from_script(str(script))
     assert config.profiles[0].name == "FromFunction"
+
+
+def test_load_config_from_intent(tmp_path):
+    script = tmp_path / "config.py"
+    _write_script(
+        script,
+        """
+from karabinerpyx import IntentConfig
+config = IntentConfig()
+config.profile("Intent")
+""",
+    )
+    config = load_config_from_script(str(script))
+    assert isinstance(config, IntentConfig)
+    assert config.profiles[0].name == "Intent"
 
 
 def test_load_config_from_attribute_discovery(tmp_path):
@@ -199,3 +215,18 @@ config = KarabinerConfig().add_profile(Profile("Env"))
     monkeypatch.setenv("KPYX_CONFIG_FILE", str(script))
 
     assert main(["list"]) == 0
+
+
+def test_cli_lint_intent_ok(tmp_path):
+    script = tmp_path / "config.py"
+    _write_script(
+        script,
+        """
+from karabinerpyx import IntentConfig
+config = IntentConfig()
+layer = config.profile("Intent").layer("nav", "right_command")
+layer.map("h", "left_arrow")
+""",
+    )
+
+    assert main(["lint", str(script)]) == 0

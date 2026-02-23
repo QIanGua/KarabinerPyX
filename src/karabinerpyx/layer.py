@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -108,6 +110,7 @@ class LayerStackBuilder:
         ] = []
         self.sequences: list[tuple[list[str], str]] = []
         self.sequence_timeout_ms = 500
+        self.sequence_variable_prefix: str | None = None
         self.conditions: list[dict[str, Any]] = []
 
     def map(self, from_key: str, to_key: str | dict[str, Any]) -> LayerStackBuilder:
@@ -200,6 +203,14 @@ class LayerStackBuilder:
         if ms <= 0:
             raise ValueError("Sequence timeout must be positive")
         self.sequence_timeout_ms = ms
+        return self
+
+    def set_sequence_variable_prefix(
+        self,
+        prefix: str | None,
+    ) -> LayerStackBuilder:
+        """Set a custom variable prefix for sequence state variables."""
+        self.sequence_variable_prefix = prefix
         return self
 
     def build_rules(self) -> list[Rule]:
@@ -299,6 +310,14 @@ class LayerStackBuilder:
         rules: list[Rule] = []
         for seq, to_key in self.sequences:
             seq_name = f"{self.name}_seq_{'_'.join(seq)}"
+            if self.sequence_variable_prefix:
+                payload = json.dumps(
+                    {"seq": seq, "to_key": to_key},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                seq_hash = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:8]
+                seq_name = f"{self.sequence_variable_prefix}_{seq_hash}"
             step_vars = [f"{seq_name}_step{index + 1}" for index in range(len(seq))]
             reset_all = [
                 {"set_variable": {"name": var_name, "value": 0}}
